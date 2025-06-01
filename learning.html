@@ -70,7 +70,6 @@
         .incorrect::before {
             content: '❌😓 ';
         }
-        /* ★変更: ポップアップスタイル */
         #completionMessage {
             display: none;
             position: fixed;
@@ -88,7 +87,6 @@
             animation: bounceIn 1s;
             z-index: 1001;
         }
-        /* ★追加: 閉じるボタン */
         #closePopup {
             position: absolute;
             top: 10px;
@@ -97,7 +95,6 @@
             cursor: pointer;
             color: white;
         }
-        /* ★追加: オーバーレイ */
         #overlay {
             display: none;
             position: fixed;
@@ -133,10 +130,8 @@
     </style>
 </head>
 <body>
-    <!-- ★追加: オーバーレイ -->
     <div id="overlay"></div>
     <img src="cat.png" alt="Cat" class="cat-bg">
-    <!-- ★変更: ポップアップメッセージ -->
     <div id="completionMessage">
         お疲れ様！今日の分は終わりだよ！🐾
         <span id="closePopup">×</span>
@@ -172,8 +167,8 @@
         // 問題設定とカウンター
         const MATH_QUESTIONS_COUNT = 1;
         const WORD_QUESTIONS_COUNT = 1;
-        let mathPresented = 0; // ★変更: 問題提示カウンター
-        let wordPresented = 0; // ★変更: 問題提示カウンター
+        let mathAnswered = 0; // ★変更: 回答カウンター
+        let wordAnswered = 0; // ★変更: 回答カウンター
         let completionShown = false;
         let mathProblems = [];
         let wordProblems = [];
@@ -201,7 +196,6 @@
             document.getElementById('mathAnswer').value = '';
             document.getElementById('submitMathButton').disabled = false;
             document.getElementById('nextMathButton').disabled = true;
-            mathPresented++; // ★変更: 提示カウント
         }
 
         function checkMath() {
@@ -215,6 +209,7 @@
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '不正解。答え: ' + currentMathProblem.answer;
             }
+            mathAnswered++; // ★変更: 回答時カウント
             document.getElementById('submitMathButton').disabled = true;
             document.getElementById('nextMathButton').disabled = false;
             checkCompletion();
@@ -258,7 +253,6 @@
             document.getElementById('wordAnswer').value = '';
             document.getElementById('submitWordButton').disabled = false;
             document.getElementById('nextWordButton').disabled = true;
-            wordPresented++; // ★変更: 提示カウント
         }
 
         function checkWord() {
@@ -277,6 +271,7 @@
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '不正解。読み: ' + currentWord.reading;
             }
+            wordAnswered++; // ★変更: 回答時カウント
             document.getElementById('submitWordButton').disabled = true;
             document.getElementById('nextWordButton').disabled = false;
             checkCompletion();
@@ -284,7 +279,7 @@
 
         // 全問完了チェック
         function checkCompletion() {
-            if (!completionShown && mathPresented >= MATH_QUESTIONS_COUNT && wordPresented >= WORD_QUESTIONS_COUNT) {
+            if (!completionShown && mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) {
                 document.getElementById('completionMessage').style.display = 'block';
                 document.getElementById('overlay').style.display = 'block';
                 if (soundEnabled) successSound.play();
@@ -292,7 +287,7 @@
             }
         }
 
-        // ★追加: ポップアップ閉じる
+        // ポップアップ閉じる
         document.getElementById('closePopup').onclick = function() {
             document.getElementById('completionMessage').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
