@@ -4,56 +4,150 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小学4年生学習支援ツール</title>
+    <!-- Google Fonts（ポップなフォント） -->
+    <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
-        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-        input { padding: 5px; margin: 5px; }
-        button { padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
-        button:hover { background: #45a049; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        .next-button { background: #2196F3; } /* 次の問題ボタンは青 */
-        .next-button:hover { background: #1e88e5; }
-        .result { margin-top: 10px; font-weight: bold; }
-        .correct { color: green; }
-        .incorrect { color: red; }
-        #completionMessage { display: none; background: #4CAF50; color: white; padding: 15px; text-align: center; font-size: 1.2em; border-radius: 5px; margin-bottom: 20px; animation: fadeIn 1s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        body {
+            font-family: 'Mochiy Pop One', sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            background: linear-gradient(to bottom, #f0f8ff, #e6e6fa); /* グラデーション背景 */
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #ffb6c1; /* パステルピンク枠 */
+            border-radius: 20px;
+            background: #fffacd; /* レモンイエロー背景 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        input {
+            padding: 8px;
+            margin: 8px;
+            border-radius: 10px;
+            font-size: 1.1em;
+        }
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(#32cd32, #adff2f); /* 緑グラデーション */
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 1.1em;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .next-button {
+            background: linear-gradient(#1e90ff, #87cefa); /* 青グラデーション */
+        }
+        .next-button:hover {
+            background: linear-gradient(#1e90ff, #87cefa);
+        }
+        .result {
+            margin-top: 10px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+        }
+        .correct::before {
+            content: '✅🎉 ';
+        }
+        .incorrect::before {
+            content: '❌😓 ';
+        }
+        #completionMessage {
+            display: none;
+            background: linear-gradient(#32cd32, #adff2f);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            animation: bounceIn 1s;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #ff4500;
+            text-align: center;
+            animation: zoomIn 1s;
+        }
+        /* アニメーション */
+        @keyframes bounceIn {
+            0% { transform: scale(0.1); opacity: 0; }
+            60% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        /* 猫イラスト */
+        .cat-bg {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            opacity: 0.1;
+            width: 100px;
+            z-index: -1;
+        }
     </style>
 </head>
 <body>
-    <!-- 全問完了メッセージ -->
-    <div id="completionMessage">お疲れ様！今日の分は終わりだよ！</div>
-
-    <h1>小学4年生学習支援ツール</h1>
+    <!-- 猫イラスト（君の猫カバー画像推奨！） -->
+    <img src="cat.png" alt="Cat" class="cat-bg">
+    <!-- 完了メッセージ -->
+    <div id="completionMessage">お疲れ様！今日の分は終わりだよ！🐾</div>
+    <h1>小学4年生学習支援ツール 🌟</h1>
 
     <!-- 掛け算セクション -->
     <div class="section">
-        <h2>掛け算問題</h2>
+        <h2>掛け算問題 🧮</h2>
         <div id="mathProblem"></div>
         <input type="number" id="mathAnswer" placeholder="答えを入力">
-        <button id="submitMathButton" onclick="checkMath()">回答する</button>
-        <button id="nextMathButton" class="next-button" onclick="nextMathProblem()" disabled>次の問題</button>
+        <button id="submitMathButton" onclick="checkMath()">回答する ✅</button>
+        <button id="nextMathButton" class="next-button" onclick="nextMathProblem()" disabled>次の問題 ➡️</button>
         <div id="mathResult" class="result"></div>
     </div>
 
     <!-- 熟語セクション -->
     <div class="section">
-        <h2>熟語の読み問題</h2>
+        <h2>熟語の読み問題 📚</h2>
         <div id="wordProblem"></div>
         <input type="text" id="wordAnswer" placeholder="読みを入力（例：ジコ、てぶくろ）">
-        <button id="submitWordButton" onclick="checkWord()">回答する</button>
-        <button id="nextWordButton" class="next-button" onclick="nextWordProblem()" disabled>次の問題</button>
+        <button id="submitWordButton" onclick="checkWord()">回答する ✅</button>
+        <button id="nextWordButton" class="next-button" onclick="nextWordProblem()" disabled>次の問題 ➡️</button>
         <div id="wordResult" class="result"></div>
     </div>
 
     <script>
+        // サウンド
+        const clickSound = new Audio('https://freesound.org/data/previews/171/171671_2437358-lq.mp3'); // ピコッ
+        const successSound = new Audio('https://freesound.org/data/previews/171/171674_2437358-lq.mp3'); // ファンファーレ
+        let soundEnabled = true; // サウンド有効
+
         // 問題設定とカウンター
-        const MATH_QUESTIONS_COUNT = 1; // 掛け算1問
-        const WORD_QUESTIONS_COUNT = 1; // 熟語1問
-        let mathAnswered = 0; // 解答済み掛け算
-        let wordAnswered = 0; // 解答済み熟語
-        let mathProblems = []; // 掛け算問題
-        let wordProblems = []; // 熟語問題
+        const MATH_QUESTIONS_COUNT = 1;
+        const WORD_QUESTIONS_COUNT = 1;
+        let mathAnswered = 0;
+        let wordAnswered = 0;
+        let mathProblems = [];
+        let wordProblems = [];
         let currentMathProblem = null;
         let currentWord = null;
 
@@ -72,7 +166,6 @@
         }
 
         function nextMathProblem() {
-            // ★変更: 1問で終了、ボタン押しても何もしない
             if (mathAnswered >= MATH_QUESTIONS_COUNT) {
                 return;
             }
@@ -85,6 +178,7 @@
         }
 
         function checkMath() {
+            if (soundEnabled) clickSound.play();
             const userAnswer = parseInt(document.getElementById('mathAnswer').value);
             const resultDiv = document.getElementById('mathResult');
             if (userAnswer === currentMathProblem.answer) {
@@ -96,8 +190,8 @@
             }
             mathAnswered++;
             document.getElementById('submitMathButton').disabled = true;
-            document.getElementById('nextMathButton').disabled = true; // ★変更: 常に無効
-            checkCompletion(); // ★変更: 回答後即チェック
+            document.getElementById('nextMathButton').disabled = true;
+            checkCompletion();
         }
 
         // 熟語データ
@@ -119,7 +213,6 @@
                     document.getElementById('wordProblem').innerText = `エラー: 熟語が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
                 }
-                // ランダムに1問選択
                 wordProblems = words.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
                 nextWordProblem();
             } catch (error) {
@@ -129,7 +222,6 @@
         }
 
         function nextWordProblem() {
-            // ★変更: 1問で終了、ボタン押しても何もしない
             if (wordAnswered >= WORD_QUESTIONS_COUNT) {
                 return;
             }
@@ -142,6 +234,7 @@
         }
 
         function checkWord() {
+            if (soundEnabled) clickSound.play();
             const userAnswer = document.getElementById('wordAnswer').value.trim();
             const resultDiv = document.getElementById('wordResult');
             if (!currentWord) {
@@ -158,15 +251,15 @@
             }
             wordAnswered++;
             document.getElementById('submitWordButton').disabled = true;
-            document.getElementById('nextWordButton').disabled = true; // ★変更: 常に無効
-            checkCompletion(); // ★変更: 回答後即チェック
+            document.getElementById('nextWordButton').disabled = true;
+            checkCompletion();
         }
 
         // 全問完了チェック
         function checkCompletion() {
             if (mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) {
                 document.getElementById('completionMessage').style.display = 'block';
-                // 両セクションを完全無効化
+                if (soundEnabled) successSound.play();
                 document.getElementById('mathAnswer').disabled = true;
                 document.getElementById('submitMathButton').disabled = true;
                 document.getElementById('nextMathButton').disabled = true;
