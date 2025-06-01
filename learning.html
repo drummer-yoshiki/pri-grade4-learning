@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小学生学習支援ツール</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        input { padding: 5px; margin: 5px; }
+        button { padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .result { margin-top: 10px; font-weight: bold; }
+        .correct { color: green; }
+        .incorrect { color: red; }
+    </style>
+</head>
+<body>
+    <h1>小学生学習支援ツール</h1>
+
+    <!-- 掛け算セクション -->
+    <div class="section">
+        <h2>掛け算問題</h2>
+        <div id="mathProblem"></div>
+        <input type="number" id="mathAnswer" placeholder="答えを入力">
+        <button onclick="checkMath()">回答する</button>
+        <div id="mathResult" class="result"></div>
+    </div>
+
+    <!-- 熟語セクション -->
+    <div class="section">
+        <h2>熟語の読み問題</h2>
+        <div id="wordProblem"></div>
+        <input type="text" id="wordAnswer" placeholder="読みを入力（例：ジコ、てぶくろ）">
+        <button onclick="checkWord()">回答する</button>
+        <div id="wordResult" class="result"></div>
+    </div>
+
+    <script>
+        // 掛け算問題生成
+        function generateMathProblem() {
+            const num1 = Math.floor(Math.random() * 900) + 100; // 3桁: 100-999
+            const digits = Math.random() < 0.5 ? 2 : 3; // 2桁 or 3桁
+            const num2 = digits === 2 ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 900) + 100;
+            document.getElementById('mathProblem').innerText = `${num1} × ${num2} = ?`;
+            return num1 * num2;
+        }
+
+        let mathCorrectAnswer = generateMathProblem();
+
+        function checkMath() {
+            const userAnswer = parseInt(document.getElementById('mathAnswer').value);
+            const resultDiv = document.getElementById('mathResult');
+            if (userAnswer === mathCorrectAnswer) {
+                resultDiv.className = 'result correct';
+                resultDiv.innerText = '正解！答え: ' + mathCorrectAnswer;
+            } else {
+                resultDiv.className = 'result incorrect';
+                resultDiv.innerText = '不正解。答え: ' + mathCorrectAnswer;
+            }
+            mathCorrectAnswer = generateMathProblem();
+            document.getElementById('mathAnswer').value = '';
+        }
+
+        // 熟語データ
+        let words = [];
+        let currentWord = null;
+
+        // CSVファイルを読み込む
+        async function loadWords() {
+            try {
+                const response = await fetch('words.csv'); // CSVファイルのパス
+                const text = await response.text();
+                words = text.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0)
+                    .map(line => {
+                        const [kanji, reading] = line.split(',');
+                        return { kanji: kanji.trim(), reading: reading.trim() };
+                    });
+                generateWordProblem();
+            } catch (error) {
+                console.error('CSV読み込みエラー:', error);
+                document.getElementById('wordProblem').innerText = 'エラー: words.csvを読み込めません。';
+            }
+        }
+
+        function generateWordProblem() {
+            if (words.length === 0) return;
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            document.getElementById('wordProblem').innerText = `熟語: ${currentWord.kanji}\n読みを答えて！`;
+        }
+
+        function checkWord() {
+            const userAnswer = document.getElementById('wordAnswer').value.trim();
+            const resultDiv = document.getElementById('wordResult');
+            if (!currentWord) {
+                resultDiv.className = 'result incorrect';
+                resultDiv.innerText = '問題が読み込まれていません。';
+                return;
+            }
+            if (userAnswer === currentWord.reading) {
+                resultDiv.className = 'result correct';
+                resultDiv.innerText = '正解！読み: ' + currentWord.reading;
+            } else {
+                resultDiv.className = 'result incorrect';
+                resultDiv.innerText = '不正解。読み: ' + currentWord.reading;
+            }
+            generateWordProblem();
+            document.getElementById('wordAnswer').value = '';
+        }
+
+        // ページ読み込み時にCSVをロード
+        window.onload = loadWords;
+    </script>
+</body>
+</html>
