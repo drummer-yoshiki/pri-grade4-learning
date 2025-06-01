@@ -40,7 +40,7 @@
     <div class="section">
         <h2>熟語の読み問題</h2>
         <div id="wordProblem"></div>
-        <input type="text" id="wordAnswer" placeholder="読みを入力（例：ビデオ、ジコジ）">
+        <input type="text" id="wordAnswer" placeholder="読みを入力（例：ジコ、てぶくろ）">
         <button id="submitWordButton" onclick="checkWord()">回答する</button>
         <button id="nextWordButton" class="next-button" onclick="nextWordProblem()" disabled>次の問題</button>
         <div id="wordResult" class="result"></div>
@@ -48,8 +48,8 @@
 
     <script>
         // 問題設定とカウンター
-        const MATH_QUESTIONS_COUNT = 1; // ★変更: 掛け算1問
-        const WORD_QUESTIONS_COUNT = 1; // ★変更: 熟語1問
+        const MATH_QUESTIONS_COUNT = 1; // 掛け算1問
+        const WORD_QUESTIONS_COUNT = 1; // 熟語1問
         let mathAnswered = 0; // 解答済み掛け算
         let wordAnswered = 0; // 解答済み熟語
         let mathProblems = []; // 掛け算問題
@@ -67,20 +67,16 @@
 
         // 掛け算問題設定
         function generateMathProblemSet() {
-            mathProblems = [generateMathProblem()]; // ★変更: 1問のみ
+            mathProblems = [generateMathProblem()];
             nextMathProblem();
         }
 
         function nextMathProblem() {
+            // ★変更: 1問で終了、ボタン押しても何もしない
             if (mathAnswered >= MATH_QUESTIONS_COUNT) {
-                document.getElementById('mathProblem').innerText = '掛け算問題は終了！';
-                document.getElementById('mathAnswer').disabled = true;
-                document.getElementById('submitMathButton').disabled = true;
-                document.getElementById('nextMathButton').disabled = true;
-                checkCompletion();
                 return;
             }
-            currentMathProblem = mathProblems[0]; // ★変更: 1問のみ
+            currentMathProblem = mathProblems[0];
             document.getElementById('mathProblem').innerText = currentMathProblem.question;
             document.getElementById('mathResult').innerText = '';
             document.getElementById('mathAnswer').value = '';
@@ -100,7 +96,8 @@
             }
             mathAnswered++;
             document.getElementById('submitMathButton').disabled = true;
-            document.getElementById('nextMathButton').disabled = false;
+            document.getElementById('nextMathButton').disabled = true; // ★変更: 常に無効
+            checkCompletion(); // ★変更: 回答後即チェック
         }
 
         // 熟語データ
@@ -123,7 +120,7 @@
                     return;
                 }
                 // ランダムに1問選択
-                wordProblems = words.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT); // ★変更: 1問のみ
+                wordProblems = words.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
                 nextWordProblem();
             } catch (error) {
                 console.error('CSV読み込みエラー:', error);
@@ -132,15 +129,11 @@
         }
 
         function nextWordProblem() {
+            // ★変更: 1問で終了、ボタン押しても何もしない
             if (wordAnswered >= WORD_QUESTIONS_COUNT) {
-                document.getElementById('wordProblem').innerText = '熟語問題は終了！';
-                document.getElementById('wordAnswer').disabled = true;
-                document.getElementById('submitWordButton').disabled = true;
-                document.getElementById('nextWordButton').disabled = true;
-                checkCompletion();
                 return;
             }
-            currentWord = wordProblems[0]; // ★変更: 1問のみ
+            currentWord = wordProblems[0];
             document.getElementById('wordProblem').innerText = `熟語: ${currentWord.kanji}\n読みを答えて！`;
             document.getElementById('wordResult').innerText = '';
             document.getElementById('wordAnswer').value = '';
@@ -165,12 +158,13 @@
             }
             wordAnswered++;
             document.getElementById('submitWordButton').disabled = true;
-            document.getElementById('nextWordButton').disabled = false;
+            document.getElementById('nextWordButton').disabled = true; // ★変更: 常に無効
+            checkCompletion(); // ★変更: 回答後即チェック
         }
 
         // 全問完了チェック
         function checkCompletion() {
-            if (mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) { // ★変更: 各1問で完了
+            if (mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) {
                 document.getElementById('completionMessage').style.display = 'block';
                 // 両セクションを完全無効化
                 document.getElementById('mathAnswer').disabled = true;
