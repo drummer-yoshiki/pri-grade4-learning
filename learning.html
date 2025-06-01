@@ -131,12 +131,14 @@
 </head>
 <body>
     <div id="overlay"></div>
-    <img src="cat.png" alt="Cat" class="cat-bg">
+    <!-- ★変更: 画像エラー対応 -->
+    <img src="cat.png" alt="" class="cat-bg" onerror="this.style.display='none'">
     <div id="completionMessage">
         お疲れ様！今日の分は終わりだよ！🐾
         <span id="closePopup">×</span>
     </div>
-    <h1>小学4年生学習支援ツール 🌟</h1>
+    <!-- ★変更: タイトル -->
+    <h1>今日のチャレンジ問題！ 🌟</h1>
 
     <!-- 掛け算セクション -->
     <div class="section">
@@ -167,8 +169,8 @@
         // 問題設定とカウンター
         const MATH_QUESTIONS_COUNT = 1;
         const WORD_QUESTIONS_COUNT = 1;
-        let mathAnswered = 0; // ★変更: 回答カウンター
-        let wordAnswered = 0; // ★変更: 回答カウンター
+        let mathAnswered = 0;
+        let wordAnswered = 0;
         let completionShown = false;
         let mathProblems = [];
         let wordProblems = [];
@@ -192,7 +194,8 @@
         function nextMathProblem() {
             currentMathProblem = generateMathProblem();
             document.getElementById('mathProblem').innerText = currentMathProblem.question;
-            document.getElementById('mathResult').innerText = '';
+            document.getElementById('mathResult').innerText = ''; // ★変更: 結果クリア
+            document.getElementById('mathResult').className = 'result'; // ★変更: 絵文字リセット
             document.getElementById('mathAnswer').value = '';
             document.getElementById('submitMathButton').disabled = false;
             document.getElementById('nextMathButton').disabled = true;
@@ -209,7 +212,7 @@
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '不正解。答え: ' + currentMathProblem.answer;
             }
-            mathAnswered++; // ★変更: 回答時カウント
+            mathAnswered++;
             document.getElementById('submitMathButton').disabled = true;
             document.getElementById('nextMathButton').disabled = false;
             checkCompletion();
@@ -249,7 +252,8 @@
             }
             currentWord = words[Math.floor(Math.random() * words.length)];
             document.getElementById('wordProblem').innerText = `熟語: ${currentWord.kanji}\n読みを答えて！`;
-            document.getElementById('wordResult').innerText = '';
+            document.getElementById('wordResult').innerText = ''; // ★変更: 結果クリア
+            document.getElementById('wordResult').className = 'result'; // ★変更: 絵文字リセット
             document.getElementById('wordAnswer').value = '';
             document.getElementById('submitWordButton').disabled = false;
             document.getElementById('nextWordButton').disabled = true;
@@ -271,7 +275,7 @@
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '不正解。読み: ' + currentWord.reading;
             }
-            wordAnswered++; // ★変更: 回答時カウント
+            wordAnswered++;
             document.getElementById('submitWordButton').disabled = true;
             document.getElementById('nextWordButton').disabled = false;
             checkCompletion();
