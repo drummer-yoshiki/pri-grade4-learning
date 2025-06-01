@@ -12,14 +12,14 @@
             padding: 20px;
             max-width: 600px;
             margin: 0 auto;
-            background: linear-gradient(to bottom, #f0f8ff, #e6e6fa); /* グラデーション背景 */
+            background: linear-gradient(to bottom, #f0f8ff, #e6e6fa);
         }
         .section {
             margin: 20px 0;
             padding: 15px;
-            border: 2px solid #ffb6c1; /* パステルピンク枠 */
+            border: 2px solid #ffb6c1;
             border-radius: 20px;
-            background: #fffacd; /* レモンイエロー背景 */
+            background: #fffacd;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         input {
@@ -30,7 +30,7 @@
         }
         button {
             padding: 10px 20px;
-            background: linear-gradient(#32cd32, #adff2f); /* 緑グラデーション */
+            background: linear-gradient(#32cd32, #adff2f);
             color: white;
             border: none;
             border-radius: 15px;
@@ -53,7 +53,7 @@
             box-shadow: none;
         }
         .next-button {
-            background: linear-gradient(#1e90ff, #87cefa); /* 青グラデーション */
+            background: linear-gradient(#1e90ff, #87cefa);
         }
         .next-button:hover {
             background: linear-gradient(#1e90ff, #87cefa);
@@ -87,7 +87,6 @@
             text-align: center;
             animation: zoomIn 1s;
         }
-        /* アニメーション */
         @keyframes bounceIn {
             0% { transform: scale(0.1); opacity: 0; }
             60% { transform: scale(1.2); opacity: 1; }
@@ -97,7 +96,6 @@
             from { transform: scale(0); }
             to { transform: scale(1); }
         }
-        /* 猫イラスト */
         .cat-bg {
             position: absolute;
             top: 10px;
@@ -109,9 +107,7 @@
     </style>
 </head>
 <body>
-    <!-- 猫イラスト（君の猫カバー画像推奨！） -->
     <img src="cat.png" alt="Cat" class="cat-bg">
-    <!-- 完了メッセージ -->
     <div id="completionMessage">お疲れ様！今日の分は終わりだよ！🐾</div>
     <h1>小学4年生学習支援ツール 🌟</h1>
 
@@ -137,15 +133,16 @@
 
     <script>
         // サウンド
-        const clickSound = new Audio('https://freesound.org/data/previews/171/171671_2437358-lq.mp3'); // ピコッ
-        const successSound = new Audio('https://freesound.org/data/previews/171/171674_2437358-lq.mp3'); // ファンファーレ
-        let soundEnabled = true; // サウンド有効
+        const clickSound = new Audio('https://freesound.org/data/previews/171/171671_2437358-lq.mp3');
+        const successSound = new Audio('https://freesound.org/data/previews/171/171674_2437358-lq.mp3');
+        let soundEnabled = true;
 
         // 問題設定とカウンター
         const MATH_QUESTIONS_COUNT = 1;
         const WORD_QUESTIONS_COUNT = 1;
         let mathAnswered = 0;
         let wordAnswered = 0;
+        let completionShown = false; // ★追加: 完了メッセージ表示済みフラグ
         let mathProblems = [];
         let wordProblems = [];
         let currentMathProblem = null;
@@ -153,8 +150,8 @@
 
         // 掛け算問題生成
         function generateMathProblem() {
-            const num1 = Math.floor(Math.random() * 900) + 100; // 3桁: 100-999
-            const digits = Math.random() < 0.5 ? 2 : 3; // 2桁 or 3桁
+            const num1 = Math.floor(Math.random() * 900) + 100;
+            const digits = Math.random() < 0.5 ? 2 : 3;
             const num2 = digits === 2 ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 900) + 100;
             return { question: `${num1} × ${num2} = ?`, answer: num1 * num2 };
         }
@@ -166,15 +163,13 @@
         }
 
         function nextMathProblem() {
-            if (mathAnswered >= MATH_QUESTIONS_COUNT) {
-                return;
-            }
-            currentMathProblem = mathProblems[0];
+            // ★変更: 新問題を生成（無限挑戦）
+            currentMathProblem = generateMathProblem();
             document.getElementById('mathProblem').innerText = currentMathProblem.question;
             document.getElementById('mathResult').innerText = '';
             document.getElementById('mathAnswer').value = '';
             document.getElementById('submitMathButton').disabled = false;
-            document.getElementById('nextMathButton').disabled = true;
+            document.getElementById('nextMathButton').disabled = true; // 回答までは無効
         }
 
         function checkMath() {
@@ -190,7 +185,7 @@
             }
             mathAnswered++;
             document.getElementById('submitMathButton').disabled = true;
-            document.getElementById('nextMathButton').disabled = true;
+            document.getElementById('nextMathButton').disabled = false; // ★変更: 次の問題有効
             checkCompletion();
         }
 
@@ -222,15 +217,17 @@
         }
 
         function nextWordProblem() {
-            if (wordAnswered >= WORD_QUESTIONS_COUNT) {
+            // ★変更: 新問題をランダム生成（無限挑戦）
+            if (words.length === 0) {
+                document.getElementById('wordProblem').innerText = 'エラー: 熟語データがありません。';
                 return;
             }
-            currentWord = wordProblems[0];
+            currentWord = words[Math.floor(Math.random() * words.length)];
             document.getElementById('wordProblem').innerText = `熟語: ${currentWord.kanji}\n読みを答えて！`;
             document.getElementById('wordResult').innerText = '';
             document.getElementById('wordAnswer').value = '';
             document.getElementById('submitWordButton').disabled = false;
-            document.getElementById('nextWordButton').disabled = true;
+            document.getElementById('nextWordButton').disabled = true; // 回答までは無効
         }
 
         function checkWord() {
@@ -251,22 +248,18 @@
             }
             wordAnswered++;
             document.getElementById('submitWordButton').disabled = true;
-            document.getElementById('nextWordButton').disabled = true;
+            document.getElementById('nextWordButton').disabled = false; // ★変更: 次の問題有効
             checkCompletion();
         }
 
         // 全問完了チェック
         function checkCompletion() {
-            if (mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) {
+            if (!completionShown && mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) {
                 document.getElementById('completionMessage').style.display = 'block';
                 if (soundEnabled) successSound.play();
-                document.getElementById('mathAnswer').disabled = true;
-                document.getElementById('submitMathButton').disabled = true;
-                document.getElementById('nextMathButton').disabled = true;
-                document.getElementById('wordAnswer').disabled = true;
-                document.getElementById('submitWordButton').disabled = true;
-                document.getElementById('nextWordButton').disabled = true;
+                completionShown = true; // ★追加: 初回のみ表示
             }
+            // ★変更: グレーアウトなし、常に有効
         }
 
         // ページ読み込み時に初期化
