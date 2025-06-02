@@ -21,11 +21,20 @@
             background: #fffacd;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+        /* ★追加: 国語問題のサブセクション */
+        .word-subsection {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #87cefa;
+            border-radius: 15px;
+            background: #f0fff0;
+        }
         input {
             padding: 8px;
             margin: 8px;
             border-radius: 10px;
             font-size: 1.1em;
+            width: calc(100% - 20px);
         }
         button {
             padding: 10px 20px;
@@ -53,9 +62,8 @@
         }
         .next-button {
             background: linear-gradient(#1e90ff, #87cefa);
-        }
-        .next-button:hover {
-            background: linear-gradient(#1e90ff, #87cefa);
+            display: block;
+            margin: 20px auto;
         }
         .result {
             margin-top: 10px;
@@ -109,6 +117,10 @@
             text-align: center;
             animation: zoomIn 1s;
         }
+        h3 {
+            margin: 10px 0;
+            color: #4682b4;
+        }
         @keyframes bounceIn {
             0% { transform: scale(0.1) translate(-50%, -50%); opacity: 0; }
             60% { transform: scale(1.2) translate(-50%, -50%); opacity: 1; }
@@ -150,11 +162,24 @@
     <!-- 国語セクション -->
     <div class="section">
         <h2>国語問題 📚</h2>
-        <div id="wordProblem"></div>
-        <input type="text" id="wordAnswer" placeholder="読みを入力（例：ジコ）">
-        <button id="submitWordButton" onclick="checkWord()">回答する ✅</button>
-        <button id="nextWordButton" class="next-button" onclick="nextWordProblem()" disabled>次の問題 ➡️</button>
-        <div id="wordResult" class="result"></div>
+        <!-- ★変更: 問題1 -->
+        <div class="word-subsection">
+            <h3>問題1</h3>
+            <div id="wordProblem1"></div>
+            <input type="text" id="wordAnswer1" placeholder="読みを入力（例：ジコ）">
+            <button id="submitWordButton1" onclick="checkWord1()">回答する ✅</button>
+            <div id="wordResult1" class="result"></div>
+        </div>
+        <!-- ★変更: 問題2 -->
+        <div class="word-subsection">
+            <h3>問題2</h3>
+            <div id="wordProblem2"></div>
+            <input type="text" id="wordAnswer2" placeholder="読みを入力（例：ジコ）">
+            <button id="submitWordButton2" onclick="checkWord2()">回答する ✅</button>
+            <div id="wordResult2" class="result"></div>
+        </div>
+        <!-- ★変更: 次の問題ボタン（全体） -->
+        <button id="nextWordButton" class="next-button" onclick="generateWordProblemSet()" disabled>次の問題 ➡️</button>
     </div>
 
     <script>
@@ -172,8 +197,8 @@
         let mathProblems = [];
         let wordProblems = [];
         let currentMathProblem = null;
-        let currentWord = null;
-        let currentWordIndex = 0;
+        let currentWord1 = null; // ★変更: 問題1
+        let currentWord2 = null; // ★変更: 問題2
 
         // 掛け算問題生成
         function generateMathProblem() {
@@ -236,77 +261,131 @@
                         };
                     });
                 if (words.length < WORD_QUESTIONS_COUNT) {
-                    document.getElementById('wordProblem').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
+                    document.getElementById('wordProblem1').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
                 }
                 generateWordProblemSet();
             } catch (error) {
                 console.error('CSV読み込みエラー:', error);
-                document.getElementById('wordProblem').innerText = 'エラー: words.csvを読み込めません。';
+                document.getElementById('wordProblem1').innerText = 'エラー: words.csvを読み込めません。';
             }
         }
 
         // 国語問題セット生成
         function generateWordProblemSet() {
             wordProblems = words.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
-            currentWordIndex = 0;
-            nextWordProblem();
-        }
-
-        function nextWordProblem() {
-            if (currentWordIndex >= WORD_QUESTIONS_COUNT) {
-                return;
-            }
-            currentWord = wordProblems[currentWordIndex];
-            let displayText = '';
-            let placeholder = '';
-            switch (currentWord.type) {
+            currentWord1 = wordProblems[0];
+            currentWord2 = wordProblems[1];
+            // ★変更: 問題1表示
+            let displayText1 = '';
+            let placeholder1 = '';
+            switch (currentWord1.type) {
                 case 1: // 二字熟語
-                    displayText = `二字熟語: ${currentWord.question}\n読みを答えて！`;
-                    placeholder = '読みを入力（例：ジコ）';
+                    displayText1 = `二字熟語: ${currentWord1.question}\n読みを答えて！`;
+                    placeholder1 = '読みを入力（例：ジコ）';
                     break;
                 case 2: // 部首
-                    displayText = `漢字: ${currentWord.question}\n部首を答えて！`;
-                    placeholder = '部首名を入力（例：みる、おおざと）'; // ★変更: 例を修正
+                    displayText1 = `漢字: ${currentWord1.question}\n部首を答えて！`;
+                    placeholder1 = '部首名を入力（例：みる、おおざと）';
                     break;
                 case 3: // 読み
-                    displayText = `漢字: ${currentWord.question}\n読みを答えて！`;
-                    placeholder = '読みを入力（例：キ）';
+                    displayText1 = `漢字: ${currentWord1.question}\n読みを答えて！`;
+                    placeholder1 = '読みを入力（例：キ）';
                     break;
                 default:
-                    displayText = 'エラー: 不明な出題形式';
-                    placeholder = '入力を入力';
+                    displayText1 = 'エラー: 不明な出題形式';
+                    placeholder1 = '入力を入力';
             }
-            document.getElementById('wordProblem').innerText = displayText;
-            document.getElementById('wordAnswer').placeholder = placeholder;
-            document.getElementById('wordResult').innerText = '';
-            document.getElementById('wordResult').className = 'result';
-            document.getElementById('wordAnswer').value = '';
-            document.getElementById('submitWordButton').disabled = false;
+            document.getElementById('wordProblem1').innerText = displayText1;
+            document.getElementById('wordAnswer1').placeholder = placeholder1;
+            document.getElementById('wordResult1').innerText = '';
+            document.getElementById('wordResult1').className = 'result';
+            document.getElementById('wordAnswer1').value = '';
+            document.getElementById('submitWordButton1').disabled = false;
+
+            // ★変更: 問題2表示
+            let displayText2 = '';
+            let placeholder2 = '';
+            switch (currentWord2.type) {
+                case 1: // 二字熟語
+                    displayText2 = `二字熟語: ${currentWord2.question}\n読みを答えて！`;
+                    placeholder2 = '読みを入力（例：ジコ）';
+                    break;
+                case 2: // 部首
+                    displayText2 = `漢字: ${currentWord2.question}\n部首を答えて！`;
+                    placeholder2 = '部首名を入力（例：みる、おおざと）';
+                    break;
+                case 3: // 読み
+                    displayText2 = `漢字: ${currentWord2.question}\n読みを答えて！`;
+                    placeholder2 = '読みを入力（例：キ）';
+                    break;
+                default:
+                    displayText2 = 'エラー: 不明な出題形式';
+                    placeholder2 = '入力を入力';
+            }
+            document.getElementById('wordProblem2').innerText = displayText2;
+            document.getElementById('wordAnswer2').placeholder = placeholder2;
+            document.getElementById('wordResult2').innerText = '';
+            document.getElementById('wordResult2').className = 'result';
+            document.getElementById('wordAnswer2').value = '';
+            document.getElementById('submitWordButton2').disabled = false;
+
+            // ★変更: 次の問題ボタン無効化
             document.getElementById('nextWordButton').disabled = true;
-            currentWordIndex++;
+            wordAnswered = 0; // ★追加: 回答カウントリセット
         }
 
-        function checkWord() {
+        // ★変更: 問題1の正誤判定
+        function checkWord1() {
             if (soundEnabled) clickSound.play();
-            const userAnswer = document.getElementById('wordAnswer').value.trim();
-            const resultDiv = document.getElementById('wordResult');
-            if (!currentWord) {
+            const userAnswer = document.getElementById('wordAnswer1').value.trim();
+            const resultDiv = document.getElementById('wordResult1');
+            if (!currentWord1) {
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '問題が読み込まれていません。';
                 return;
             }
-            if (userAnswer === currentWord.answer) {
+            if (userAnswer === currentWord1.answer) {
                 resultDiv.className = 'result correct';
-                resultDiv.innerText = '正解！答え: ' + currentWord.answer;
+                resultDiv.innerText = '正解！答え: ' + currentWord1.answer;
             } else {
                 resultDiv.className = 'result incorrect';
-                resultDiv.innerText = '不正解。答え: ' + currentWord.answer;
+                resultDiv.innerText = '不正解。答え: ' + currentWord1.answer;
             }
             wordAnswered++;
-            document.getElementById('submitWordButton').disabled = true;
-            document.getElementById('nextWordButton').disabled = currentWordIndex >= WORD_QUESTIONS_COUNT;
+            document.getElementById('submitWordButton1').disabled = true;
+            updateNextWordButton();
             checkCompletion();
+        }
+
+        // ★変更: 問題2の正誤判定
+        function checkWord2() {
+            if (soundEnabled) clickSound.play();
+            const userAnswer = document.getElementById('wordAnswer2').value.trim();
+            const resultDiv = document.getElementById('wordResult2');
+            if (!currentWord2) {
+                resultDiv.className = 'result incorrect';
+                resultDiv.innerText = '問題が読み込まれていません。';
+                return;
+            }
+            if (userAnswer === currentWord2.answer) {
+                resultDiv.className = 'result correct';
+                resultDiv.innerText = '正解！答え: ' + currentWord2.answer;
+            } else {
+                resultDiv.className = 'result incorrect';
+                resultDiv.innerText = '不正解。答え: ' + currentWord2.answer;
+            }
+            wordAnswered++;
+            document.getElementById('submitWordButton2').disabled = true;
+            updateNextWordButton();
+            checkCompletion();
+        }
+
+        // ★追加: 次の問題ボタンの有効化
+        function updateNextWordButton() {
+            if (wordAnswered >= WORD_QUESTIONS_COUNT) {
+                document.getElementById('nextWordButton').disabled = false;
+            }
         }
 
         // 全問完了チェック
