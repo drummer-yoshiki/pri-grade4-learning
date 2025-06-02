@@ -21,7 +21,6 @@
             background: #fffacd;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        /* ★追加: 国語問題のサブセクション */
         .word-subsection {
             margin: 10px 0;
             padding: 10px;
@@ -162,7 +161,6 @@
     <!-- 国語セクション -->
     <div class="section">
         <h2>国語問題 📚</h2>
-        <!-- ★変更: 問題1 -->
         <div class="word-subsection">
             <h3>問題1</h3>
             <div id="wordProblem1"></div>
@@ -170,7 +168,6 @@
             <button id="submitWordButton1" onclick="checkWord1()">回答する ✅</button>
             <div id="wordResult1" class="result"></div>
         </div>
-        <!-- ★変更: 問題2 -->
         <div class="word-subsection">
             <h3>問題2</h3>
             <div id="wordProblem2"></div>
@@ -178,7 +175,6 @@
             <button id="submitWordButton2" onclick="checkWord2()">回答する ✅</button>
             <div id="wordResult2" class="result"></div>
         </div>
-        <!-- ★変更: 次の問題ボタン（全体） -->
         <button id="nextWordButton" class="next-button" onclick="generateWordProblemSet()" disabled>次の問題 ➡️</button>
     </div>
 
@@ -197,8 +193,8 @@
         let mathProblems = [];
         let wordProblems = [];
         let currentMathProblem = null;
-        let currentWord1 = null; // ★変更: 問題1
-        let currentWord2 = null; // ★変更: 問題2
+        let currentWord1 = null;
+        let currentWord2 = null;
 
         // 掛け算問題生成
         function generateMathProblem() {
@@ -259,7 +255,8 @@
                             question: question.trim(), 
                             answer: answer.trim() 
                         };
-                    });
+                    })
+                    .filter(word => word.type === 1 || word.type === 2);
                 if (words.length < WORD_QUESTIONS_COUNT) {
                     document.getElementById('wordProblem1').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
@@ -276,21 +273,17 @@
             wordProblems = words.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
             currentWord1 = wordProblems[0];
             currentWord2 = wordProblems[1];
-            // ★変更: 問題1表示
+            // 問題1表示
             let displayText1 = '';
             let placeholder1 = '';
             switch (currentWord1.type) {
-                case 1: // 二字熟語
-                    displayText1 = `二字熟語: ${currentWord1.question}\n読みを答えて！`;
-                    placeholder1 = '読みを入力（例：ジコ）';
-                    break;
-                case 2: // 部首
+                case 1: // 部首
                     displayText1 = `漢字: ${currentWord1.question}\n部首を答えて！`;
                     placeholder1 = '部首名を入力（例：みる、おおざと）';
                     break;
-                case 3: // 読み
-                    displayText1 = `漢字: ${currentWord1.question}\n読みを答えて！`;
-                    placeholder1 = '読みを入力（例：キ）';
+                case 2: // 熟語
+                    displayText1 = `熟語: ${currentWord1.question}\n読みを答えて！（音読みはカタカナ、訓読みはひらがなで）`; // ★変更: 熟語＋読み方ルール
+                    placeholder1 = '読みを入力（例：ジコ、ベンキョウカイ）'; // ★変更: 三字熟語例
                     break;
                 default:
                     displayText1 = 'エラー: 不明な出題形式';
@@ -303,21 +296,17 @@
             document.getElementById('wordAnswer1').value = '';
             document.getElementById('submitWordButton1').disabled = false;
 
-            // ★変更: 問題2表示
+            // 問題2表示
             let displayText2 = '';
             let placeholder2 = '';
             switch (currentWord2.type) {
-                case 1: // 二字熟語
-                    displayText2 = `二字熟語: ${currentWord2.question}\n読みを答えて！`;
-                    placeholder2 = '読みを入力（例：ジコ）';
-                    break;
-                case 2: // 部首
+                case 1: // 部首
                     displayText2 = `漢字: ${currentWord2.question}\n部首を答えて！`;
                     placeholder2 = '部首名を入力（例：みる、おおざと）';
                     break;
-                case 3: // 読み
-                    displayText2 = `漢字: ${currentWord2.question}\n読みを答えて！`;
-                    placeholder2 = '読みを入力（例：キ）';
+                case 2: // 熟語
+                    displayText2 = `熟語: ${currentWord2.question}\n読みを答えて！（音読みはカタカナ、訓読みはひらがなで）`; // ★変更: 熟語＋読み方ルール
+                    placeholder2 = '読みを入力（例：ジコ、ベンキョウカイ）'; // ★変更: 三字熟語例
                     break;
                 default:
                     displayText2 = 'エラー: 不明な出題形式';
@@ -330,12 +319,10 @@
             document.getElementById('wordAnswer2').value = '';
             document.getElementById('submitWordButton2').disabled = false;
 
-            // ★変更: 次の問題ボタン無効化
             document.getElementById('nextWordButton').disabled = true;
-            wordAnswered = 0; // ★追加: 回答カウントリセット
+            wordAnswered = 0;
         }
 
-        // ★変更: 問題1の正誤判定
         function checkWord1() {
             if (soundEnabled) clickSound.play();
             const userAnswer = document.getElementById('wordAnswer1').value.trim();
@@ -358,7 +345,6 @@
             checkCompletion();
         }
 
-        // ★変更: 問題2の正誤判定
         function checkWord2() {
             if (soundEnabled) clickSound.play();
             const userAnswer = document.getElementById('wordAnswer2').value.trim();
@@ -381,14 +367,12 @@
             checkCompletion();
         }
 
-        // ★追加: 次の問題ボタンの有効化
         function updateNextWordButton() {
             if (wordAnswered >= WORD_QUESTIONS_COUNT) {
                 document.getElementById('nextWordButton').disabled = false;
             }
         }
 
-        // 全問完了チェック
         function checkCompletion() {
             if (!completionShown && mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) {
                 document.getElementById('completionMessage').style.display = 'block';
@@ -398,13 +382,11 @@
             }
         }
 
-        // ポップアップ閉じる
         document.getElementById('closePopup').onclick = function() {
             document.getElementById('completionMessage').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
         };
 
-        // ページ読み込み時に初期化
         window.onload = () => {
             generateMathProblemSet();
             loadWords();
