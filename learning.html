@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小学4年生学習支援ツール</title>
-    <!-- Google Fonts（ポップなフォント） -->
+    <title>小学4年生</title>
     <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap" rel="stylesheet">
     <style>
         body {
@@ -131,13 +130,11 @@
 </head>
 <body>
     <div id="overlay"></div>
-    <!-- ★変更: 画像エラー対応 -->
     <img src="cat.png" alt="" class="cat-bg" onerror="this.style.display='none'">
     <div id="completionMessage">
         お疲れ様！今日の分は終わりだよ！🐾
         <span id="closePopup">×</span>
     </div>
-    <!-- ★変更: タイトル -->
     <h1>今日のチャレンジ問題！ 🌟</h1>
 
     <!-- 掛け算セクション -->
@@ -150,11 +147,11 @@
         <div id="mathResult" class="result"></div>
     </div>
 
-    <!-- 熟語セクション -->
+    <!-- 国語セクション -->
     <div class="section">
-        <h2>熟語の読み問題 📚</h2>
+        <h2>国語問題 📚</h2>
         <div id="wordProblem"></div>
-        <input type="text" id="wordAnswer" placeholder="読みを入力（例：ジコ、てぶくろ）">
+        <input type="text" id="wordAnswer" placeholder="読みを入力（例：ジコ）">
         <button id="submitWordButton" onclick="checkWord()">回答する ✅</button>
         <button id="nextWordButton" class="next-button" onclick="nextWordProblem()" disabled>次の問題 ➡️</button>
         <div id="wordResult" class="result"></div>
@@ -168,7 +165,7 @@
 
         // 問題設定とカウンター
         const MATH_QUESTIONS_COUNT = 1;
-        const WORD_QUESTIONS_COUNT = 1;
+        const WORD_QUESTIONS_COUNT = 2;
         let mathAnswered = 0;
         let wordAnswered = 0;
         let completionShown = false;
@@ -176,6 +173,7 @@
         let wordProblems = [];
         let currentMathProblem = null;
         let currentWord = null;
+        let currentWordIndex = 0;
 
         // 掛け算問題生成
         function generateMathProblem() {
@@ -194,8 +192,8 @@
         function nextMathProblem() {
             currentMathProblem = generateMathProblem();
             document.getElementById('mathProblem').innerText = currentMathProblem.question;
-            document.getElementById('mathResult').innerText = ''; // ★変更: 結果クリア
-            document.getElementById('mathResult').className = 'result'; // ★変更: 絵文字リセット
+            document.getElementById('mathResult').innerText = '';
+            document.getElementById('mathResult').className = 'result';
             document.getElementById('mathAnswer').value = '';
             document.getElementById('submitMathButton').disabled = false;
             document.getElementById('nextMathButton').disabled = true;
@@ -218,7 +216,7 @@
             checkCompletion();
         }
 
-        // 熟語データ
+        // 国語データ
         let words = [];
 
         // CSVファイルを読み込む
@@ -230,33 +228,63 @@
                     .map(line => line.trim())
                     .filter(line => line.length > 0)
                     .map(line => {
-                        const [kanji, reading] = line.split(',');
-                        return { kanji: kanji.trim(), reading: reading.trim() };
+                        const [type, question, answer] = line.split(',');
+                        return { 
+                            type: parseInt(type.trim()), 
+                            question: question.trim(), 
+                            answer: answer.trim() 
+                        };
                     });
                 if (words.length < WORD_QUESTIONS_COUNT) {
-                    document.getElementById('wordProblem').innerText = `エラー: 熟語が${WORD_QUESTIONS_COUNT}問以上必要です。`;
+                    document.getElementById('wordProblem').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
                 }
-                wordProblems = words.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
-                nextWordProblem();
+                generateWordProblemSet();
             } catch (error) {
                 console.error('CSV読み込みエラー:', error);
                 document.getElementById('wordProblem').innerText = 'エラー: words.csvを読み込めません。';
             }
         }
 
+        // 国語問題セット生成
+        function generateWordProblemSet() {
+            wordProblems = words.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
+            currentWordIndex = 0;
+            nextWordProblem();
+        }
+
         function nextWordProblem() {
-            if (words.length === 0) {
-                document.getElementById('wordProblem').innerText = 'エラー: 熟語データがありません。';
+            if (currentWordIndex >= WORD_QUESTIONS_COUNT) {
                 return;
             }
-            currentWord = words[Math.floor(Math.random() * words.length)];
-            document.getElementById('wordProblem').innerText = `熟語: ${currentWord.kanji}\n読みを答えて！`;
-            document.getElementById('wordResult').innerText = ''; // ★変更: 結果クリア
-            document.getElementById('wordResult').className = 'result'; // ★変更: 絵文字リセット
+            currentWord = wordProblems[currentWordIndex];
+            let displayText = '';
+            let placeholder = '';
+            switch (currentWord.type) {
+                case 1: // 二字熟語
+                    displayText = `二字熟語: ${currentWord.question}\n読みを答えて！`;
+                    placeholder = '読みを入力（例：ジコ）';
+                    break;
+                case 2: // 部首
+                    displayText = `漢字: ${currentWord.question}\n部首を答えて！`;
+                    placeholder = '部首名を入力（例：みる、おおざと）'; // ★変更: 例を修正
+                    break;
+                case 3: // 読み
+                    displayText = `漢字: ${currentWord.question}\n読みを答えて！`;
+                    placeholder = '読みを入力（例：キ）';
+                    break;
+                default:
+                    displayText = 'エラー: 不明な出題形式';
+                    placeholder = '入力を入力';
+            }
+            document.getElementById('wordProblem').innerText = displayText;
+            document.getElementById('wordAnswer').placeholder = placeholder;
+            document.getElementById('wordResult').innerText = '';
+            document.getElementById('wordResult').className = 'result';
             document.getElementById('wordAnswer').value = '';
             document.getElementById('submitWordButton').disabled = false;
             document.getElementById('nextWordButton').disabled = true;
+            currentWordIndex++;
         }
 
         function checkWord() {
@@ -268,16 +296,16 @@
                 resultDiv.innerText = '問題が読み込まれていません。';
                 return;
             }
-            if (userAnswer === currentWord.reading) {
+            if (userAnswer === currentWord.answer) {
                 resultDiv.className = 'result correct';
-                resultDiv.innerText = '正解！読み: ' + currentWord.reading;
+                resultDiv.innerText = '正解！答え: ' + currentWord.answer;
             } else {
                 resultDiv.className = 'result incorrect';
-                resultDiv.innerText = '不正解。読み: ' + currentWord.reading;
+                resultDiv.innerText = '不正解。答え: ' + currentWord.answer;
             }
             wordAnswered++;
             document.getElementById('submitWordButton').disabled = true;
-            document.getElementById('nextWordButton').disabled = false;
+            document.getElementById('nextWordButton').disabled = currentWordIndex >= WORD_QUESTIONS_COUNT;
             checkCompletion();
         }
 
