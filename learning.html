@@ -64,6 +64,11 @@
             display: block;
             margin: 20px auto;
         }
+        .reset-button {
+            background: linear-gradient(#ff4500, #ffa500);
+            display: block;
+            margin: 20px auto;
+        }
         .result {
             margin-top: 10px;
             font-size: 1.2em;
@@ -76,7 +81,7 @@
         .incorrect::before {
             content: '❌😓 ';
         }
-        #completionMessage {
+        #completionMessage, #allWordsCompleted {
             display: none;
             position: fixed;
             top: 50%;
@@ -93,7 +98,7 @@
             animation: bounceIn 1s;
             z-index: 1001;
         }
-        #closePopup {
+        #closePopup, #closeAllWords {
             position: absolute;
             top: 10px;
             right: 15px;
@@ -146,6 +151,11 @@
         お疲れ様！今日の分は終わりだよ！🐾
         <span id="closePopup">×</span>
     </div>
+    <div id="allWordsCompleted">
+        すごい！全問題を制覇したよ！🎉 もう一度挑戦する？<br>
+        <button onclick="resetUsedWords()">リセットして再挑戦！</button>
+        <span id="closeAllWords">×</span>
+    </div>
     <h1>今日のチャレンジ問題！ 🌟</h1>
 
     <!-- 掛け算セクション -->
@@ -176,15 +186,20 @@
             <div id="wordResult2" class="result"></div>
         </div>
         <button id="nextWordButton" class="next-button" onclick="generateWordProblemSet()" disabled>次の問題 ➡️</button>
+        <button class="reset-button" onclick="resetUsedWords()">問題リセット 🔄</button> <!-- ★追加: リセットボタン -->
     </div>
 
     <script>
-        // サウンド
-        // ★変更: 新しいサウンドファイル
-        const correctSound = new Audio('correct.mp3'); // ピンポーン
-        const incorrectSound = new Audio('incorrect.mp3'); // ブー
-        const completeSound = new Audio('complete.mp3'); // パンパカパーン
-        let soundEnabled = true;
+        // サウンド（保留：ファイル未配置でもエラー回避）
+        let correctSound, incorrectSound, completeSound;
+        try {
+            correctSound = new Audio('correct.mp3'); // ピンポーン
+            incorrectSound = new Audio('incorrect.mp3'); // ブー
+            completeSound = new Audio('complete.mp3'); // パンパカパーン
+        } catch (e) {
+            console.warn('サウンドファイル未配置:', e);
+        }
+        let soundEnabled = false; // ★変更: サウンド未配置なのでfalse
 
         // 問題設定とカウンター
         const MATH_QUESTIONS_COUNT = 1;
@@ -197,6 +212,7 @@
         let currentMathProblem = null;
         let currentWord1 = null;
         let currentWord2 = null;
+        let usedWordIndices = JSON.parse(localStorage.getItem('usedWordIndices')) || []; // ★追加: 出題済みインデックス
 
         // 掛け算問題生成
         function generateMathProblem() {
@@ -226,11 +242,11 @@
             const userAnswer = parseInt(document.getElementById('mathAnswer').value);
             const resultDiv = document.getElementById('mathResult');
             if (userAnswer === currentMathProblem.answer) {
-                if (soundEnabled) correctSound.play(); // ★変更: ピンポーン
+                if (soundEnabled && correctSound) correctSound.play();
                 resultDiv.className = 'result correct';
                 resultDiv.innerText = '正解！答え: ' + currentMathProblem.answer;
             } else {
-                if (soundEnabled) incorrectSound.play(); // ★変更: ブー
+                if (soundEnabled && incorrectSound) incorrectSound.play();
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '不正解。答え: ' + currentMathProblem.answer;
             }
@@ -264,6 +280,10 @@
                     document.getElementById('wordProblem1').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
                 }
+                // ★追加: usedWordIndicesの整合性チェック
+                if (usedWordIndices.length > words.length) {
+                    resetUsedWords();
+                }
                 generateWordProblemSet();
             } catch (error) {
                 console.error('CSV読み込みエラー:', error);
@@ -271,20 +291,40 @@
             }
         }
 
-        // 国語問題セット生成
+        // 国語問題セット生成（★変更: 重複なしランダム）
         function generateWordProblemSet() {
-            wordProblems = words.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
+            // 未出題問題を取得
+            const availableWords = words.filter((_, index) => !usedWordIndices.includes(index));
+            if (availableWords.length < WORD_QUESTIONS_COUNT) {
+                // 全問出題済み
+                document.getElementById('allWordsCompleted').style.display = 'block';
+                document.getElementById('overlay').style.display = 'block';
+                return;
+            }
+            // ランダムに2問選択
+            const shuffled = availableWords
+                .map((word, i) => ({ word, index: words.findIndex(w => w === word) }))
+                .sort(() => Math.random() - 0.5)
+                .slice(0, WORD_QUESTIONS_COUNT);
+            wordProblems = shuffled.map(item => item.word);
+            const selectedIndices = shuffled.map(item => item.index);
+            
+            // 出題済みに追加
+            usedWordIndices.push(...selectedIndices);
+            localStorage.setItem('usedWordIndices', JSON.stringify(usedWordIndices));
+
             currentWord1 = wordProblems[0];
             currentWord2 = wordProblems[1];
+
             // 問題1表示
             let displayText1 = '';
             let placeholder1 = '';
             switch (currentWord1.type) {
-                case 1: // 部首
+                case 1:
                     displayText1 = `漢字: ${currentWord1.question}\n部首を答えて！`;
                     placeholder1 = '部首名を入力（例：みる、おおざと）';
                     break;
-                case 2: // 熟語
+                case 2:
                     displayText1 = `熟語: ${currentWord1.question}\n読みを答えて！（音読みはカタカナ、訓読みはひらがなで）`;
                     placeholder1 = '読みを入力（例：ジコ、ベンキョウカイ）';
                     break;
@@ -303,11 +343,11 @@
             let displayText2 = '';
             let placeholder2 = '';
             switch (currentWord2.type) {
-                case 1: // 部首
+                case 1:
                     displayText2 = `漢字: ${currentWord2.question}\n部首を答えて！`;
                     placeholder2 = '部首名を入力（例：みる、おおざと）';
                     break;
-                case 2: // 熟語
+                case 2:
                     displayText2 = `熟語: ${currentWord2.question}\n読みを答えて！（音読みはカタカナ、訓読みはひらがなで）`;
                     placeholder2 = '読みを入力（例：ジコ、ベンキョウカイ）';
                     break;
@@ -330,17 +370,17 @@
             const userAnswer = document.getElementById('wordAnswer1').value.trim();
             const resultDiv = document.getElementById('wordResult1');
             if (!currentWord1) {
-                if (soundEnabled) incorrectSound.play(); // ★変更: ブー
+                if (soundEnabled && incorrectSound) incorrectSound.play();
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '問題が読み込まれていません。';
                 return;
             }
             if (userAnswer === currentWord1.answer) {
-                if (soundEnabled) correctSound.play(); // ★変更: ピンポーン
+                if (soundEnabled && correctSound) correctSound.play();
                 resultDiv.className = 'result correct';
                 resultDiv.innerText = '正解！答え: ' + currentWord1.answer;
             } else {
-                if (soundEnabled) incorrectSound.play(); // ★変更: ブー
+                if (soundEnabled && incorrectSound) incorrectSound.play();
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '不正解。答え: ' + currentWord1.answer;
             }
@@ -354,17 +394,17 @@
             const userAnswer = document.getElementById('wordAnswer2').value.trim();
             const resultDiv = document.getElementById('wordResult2');
             if (!currentWord2) {
-                if (soundEnabled) incorrectSound.play(); // ★変更: ブー
+                if (soundEnabled && incorrectSound) incorrectSound.play();
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '問題が読み込まれていません。';
                 return;
             }
             if (userAnswer === currentWord2.answer) {
-                if (soundEnabled) correctSound.play(); // ★変更: ピンポーン
+                if (soundEnabled && correctSound) correctSound.play();
                 resultDiv.className = 'result correct';
-                resultDiv.innerText = '正解！答え: ' + currentWord2.answer;
+                resultDiv.innerText = '正解！答え: ' + currentWord1.answer;
             } else {
-                if (soundEnabled) incorrectSound.play(); // ★変更: ブー
+                if (soundEnabled && incorrectSound) incorrectSound.play();
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerText = '不正解。答え: ' + currentWord2.answer;
             }
@@ -384,13 +424,27 @@
             if (!completionShown && mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) {
                 document.getElementById('completionMessage').style.display = 'block';
                 document.getElementById('overlay').style.display = 'block';
-                if (soundEnabled) completeSound.play(); // ★変更: パンパカパーン
+                if (soundEnabled && completeSound) completeSound.play();
                 completionShown = true;
             }
         }
 
+        // ★追加: 出題済みリセット
+        function resetUsedWords() {
+            usedWordIndices = [];
+            localStorage.setItem('usedWordIndices', JSON.stringify(usedWordIndices));
+            document.getElementById('allWordsCompleted').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            generateWordProblemSet();
+        }
+
         document.getElementById('closePopup').onclick = function() {
             document.getElementById('completionMessage').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        };
+
+        document.getElementById('closeAllWords').onclick = function() {
+            document.getElementById('allWordsCompleted').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
         };
 
