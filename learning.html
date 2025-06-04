@@ -64,11 +64,6 @@
             display: block;
             margin: 20px auto;
         }
-        .reset-button {
-            background: linear-gradient(#ff4500, #ffa500);
-            display: block;
-            margin: 20px auto;
-        }
         .result {
             margin-top: 10px;
             font-size: 1.2em;
@@ -152,8 +147,7 @@
         <span id="closePopup">×</span>
     </div>
     <div id="allWordsCompleted">
-        すごい！全問題を制覇したよ！🎉 もう一度挑戦する？<br>
-        <button onclick="resetUsedWords()">リセットして再挑戦！</button>
+        すごい！全問題を制覇したよ！🎉 新しい問題を始めるよ！
         <span id="closeAllWords">×</span>
     </div>
     <h1>今日のチャレンジ問題！ 🌟</h1>
@@ -186,7 +180,7 @@
             <div id="wordResult2" class="result"></div>
         </div>
         <button id="nextWordButton" class="next-button" onclick="generateWordProblemSet()" disabled>次の問題 ➡️</button>
-        <button class="reset-button" onclick="resetUsedWords()">問題リセット 🔄</button> <!-- ★追加: リセットボタン -->
+        <!-- ★変更: リセットボタン削除 -->
     </div>
 
     <script>
@@ -199,7 +193,7 @@
         } catch (e) {
             console.warn('サウンドファイル未配置:', e);
         }
-        let soundEnabled = false; // ★変更: サウンド未配置なのでfalse
+        let soundEnabled = false; // サウンド未配置なのでfalse
 
         // 問題設定とカウンター
         const MATH_QUESTIONS_COUNT = 1;
@@ -212,7 +206,7 @@
         let currentMathProblem = null;
         let currentWord1 = null;
         let currentWord2 = null;
-        let usedWordIndices = JSON.parse(localStorage.getItem('usedWordIndices')) || []; // ★追加: 出題済みインデックス
+        let usedWordIndices = JSON.parse(localStorage.getItem('usedWordIndices')) || [];
 
         // 掛け算問題生成
         function generateMathProblem() {
@@ -280,25 +274,25 @@
                     document.getElementById('wordProblem1').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
                 }
-                // ★追加: usedWordIndicesの整合性チェック
-                if (usedWordIndices.length > words.length) {
-                    resetUsedWords();
+                // ★変更: サイトロード時に全問網羅ならリセット
+                if (usedWordIndices.length >= words.length) {
+                    resetUsedWords(true);
+                } else {
+                    generateWordProblemSet();
                 }
-                generateWordProblemSet();
             } catch (error) {
                 console.error('CSV読み込みエラー:', error);
                 document.getElementById('wordProblem1').innerText = 'エラー: words.csvを読み込めません。';
             }
         }
 
-        // 国語問題セット生成（★変更: 重複なしランダム）
+        // 国語問題セット生成
         function generateWordProblemSet() {
             // 未出題問題を取得
             const availableWords = words.filter((_, index) => !usedWordIndices.includes(index));
             if (availableWords.length < WORD_QUESTIONS_COUNT) {
-                // 全問出題済み
-                document.getElementById('allWordsCompleted').style.display = 'block';
-                document.getElementById('overlay').style.display = 'block';
+                // ★変更: 全問網羅ならリセット＋新2問
+                resetUsedWords(false);
                 return;
             }
             // ランダムに2問選択
@@ -308,7 +302,7 @@
                 .slice(0, WORD_QUESTIONS_COUNT);
             wordProblems = shuffled.map(item => item.word);
             const selectedIndices = shuffled.map(item => item.index);
-            
+
             // 出題済みに追加
             usedWordIndices.push(...selectedIndices);
             localStorage.setItem('usedWordIndices', JSON.stringify(usedWordIndices));
@@ -402,7 +396,7 @@
             if (userAnswer === currentWord2.answer) {
                 if (soundEnabled && correctSound) correctSound.play();
                 resultDiv.className = 'result correct';
-                resultDiv.innerText = '正解！答え: ' + currentWord1.answer;
+                resultDiv.innerText = '正解！答え: ' + currentWord2.answer;
             } else {
                 if (soundEnabled && incorrectSound) incorrectSound.play();
                 resultDiv.className = 'result incorrect';
@@ -429,13 +423,22 @@
             }
         }
 
-        // ★追加: 出題済みリセット
-        function resetUsedWords() {
+        // ★変更: 自動リセット＋ポップアップ
+        function resetUsedWords(showPopup = true) {
             usedWordIndices = [];
             localStorage.setItem('usedWordIndices', JSON.stringify(usedWordIndices));
-            document.getElementById('allWordsCompleted').style.display = 'none';
-            document.getElementById('overlay').style.display = 'none';
-            generateWordProblemSet();
+            if (showPopup) {
+                document.getElementById('allWordsCompleted').style.display = 'block';
+                document.getElementById('overlay').style.display = 'block';
+                // 1秒後に自動消滅＋新2問
+                setTimeout(() => {
+                    document.getElementById('allWordsCompleted').style.display = 'none';
+                    document.getElementById('overlay').style.display = 'none';
+                    generateWordProblemSet();
+                }, 1000);
+            } else {
+                generateWordProblemSet();
+            }
         }
 
         document.getElementById('closePopup').onclick = function() {
@@ -446,6 +449,7 @@
         document.getElementById('closeAllWords').onclick = function() {
             document.getElementById('allWordsCompleted').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
+            generateWordProblemSet();
         };
 
         window.onload = () => {
