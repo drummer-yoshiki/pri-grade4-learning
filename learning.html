@@ -76,7 +76,7 @@
         .incorrect::before {
             content: '❌😓 ';
         }
-        #completionMessage, #allWordsCompleted {
+        #completionMessage, #allWordsCompleted, #updatedWords {
             display: none;
             position: fixed;
             top: 50%;
@@ -93,7 +93,7 @@
             animation: bounceIn 1s;
             z-index: 1001;
         }
-        #closePopup, #closeAllWords {
+        #closePopup, #closeAllWords, #closeUpdated {
             position: absolute;
             top: 10px;
             right: 15px;
@@ -120,14 +120,20 @@
             margin: 10px 0;
             color: #4682b4;
         }
+        #wordProgress {
+            font-size: 1.1em;
+            color: #4682b4;
+            margin: 10px;
+            text-align: center;
+        }
         @keyframes bounceIn {
             0% { transform: scale(0.1) translate(-50%, -50%); opacity: 0; }
             60% { transform: scale(1.2) translate(-50%, -50%); opacity: 1; }
             100% { transform: scale(1) translate(-50%, -50%); }
         }
         @keyframes zoomIn {
-            from { transform: scale(0); }
-            to { transform: scale(1); }
+            from { scale(0); }
+            to { scale(1); }
         }
         .cat-bg {
             position: absolute;
@@ -150,6 +156,10 @@
         すごい！全問題を制覇したよ！🎉 新しい問題を始めるよ！
         <span id="closeAllWords">×</span>
     </div>
+    <div id="updatedWords">
+        問題が更新されたよ！新しく挑戦！🚀
+        <span id="closeUpdated">×</span>
+    </div>
     <h1>今日のチャレンジ問題！ 🌟</h1>
 
     <!-- 掛け算セクション -->
@@ -165,6 +175,7 @@
     <!-- 国語セクション -->
     <div class="section">
         <h2>国語問題 📚</h2>
+        <div id="wordProgress">残りXX問</div>
         <div class="word-subsection">
             <h3>問題1</h3>
             <div id="wordProblem1"></div>
@@ -180,7 +191,6 @@
             <div id="wordResult2" class="result"></div>
         </div>
         <button id="nextWordButton" class="next-button" onclick="generateWordProblemSet()" disabled>次の問題 ➡️</button>
-        <!-- ★変更: リセットボタン削除 -->
     </div>
 
     <script>
@@ -206,7 +216,7 @@
         let currentMathProblem = null;
         let currentWord1 = null;
         let currentWord2 = null;
-        let usedWordIndices = JSON.parse(localStorage.getItem('usedWordIndices')) || [];
+        let usedWordHashes = JSON.parse(localStorage.getItem('usedWordHashes')) || []; // ★変更: ハッシュ管理
 
         // 掛け算問題生成
         function generateMathProblem() {
@@ -253,17 +263,19 @@
         // 国語データ
         let words = [];
 
-        // CSVファイルを読み込む
+        // database.csv読み込み
         async function loadWords() {
             try {
-                const response = await fetch('words.csv');
+                const response = await fetch('database.csv');
                 const text = await response.text();
                 words = text.split('\n')
                     .map(line => line.trim())
                     .filter(line => line.length > 0)
+                    .slice(1) // ヘッダー除外
                     .map(line => {
-                        const [type, question, answer] = line.split(',');
+                        const [hash, type, question, answer] = line.split(',');
                         return { 
+                            hash: hash.trim(), 
                             type: parseInt(type.trim()), 
                             question: question.trim(), 
                             answer: answer.trim() 
@@ -274,38 +286,42 @@
                     document.getElementById('wordProblem1').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
                 }
-                // ★変更: サイトロード時に全問網羅ならリセット
-                if (usedWordIndices.length >= words.length) {
-                    resetUsedWords(true);
-                } else {
+                // ハッシュ整合性チェック（存在しないハッシュをクリア）
+                usedWordHashes = usedWordHashes.filter(hash => words.some(word => word.hash === hash));
+                localStorage.setItem('usedWordHashes', JSON.stringify(usedWordHashes));
+                // 更新通知（初回ロード）
+                document.getElementById('updatedWords').style.display = 'block';
+                document.getElementById('overlay').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('updatedWords').style.display = 'none';
+                    document.getElementById('overlay').style.display = 'none';
                     generateWordProblemSet();
-                }
+                }, 1000);
             } catch (error) {
                 console.error('CSV読み込みエラー:', error);
-                document.getElementById('wordProblem1').innerText = 'エラー: words.csvを読み込めません。';
+                document.getElementById('wordProblem1').innerText = 'エラー: database.csvを読み込めません。';
             }
         }
 
         // 国語問題セット生成
         function generateWordProblemSet() {
             // 未出題問題を取得
-            const availableWords = words.filter((_, index) => !usedWordIndices.includes(index));
+            const availableWords = words.filter(word => !usedWordHashes.includes(word.hash));
             if (availableWords.length < WORD_QUESTIONS_COUNT) {
-                // ★変更: 全問網羅ならリセット＋新2問
-                resetUsedWords(false);
+                // 全問網羅ならリセット
+                resetUsedWords(true);
                 return;
             }
+            // 進捗更新
+            document.getElementById('wordProgress').innerText = `残り${availableWords.length}問`;
             // ランダムに2問選択
-            const shuffled = availableWords
-                .map((word, i) => ({ word, index: words.findIndex(w => w === word) }))
-                .sort(() => Math.random() - 0.5)
-                .slice(0, WORD_QUESTIONS_COUNT);
-            wordProblems = shuffled.map(item => item.word);
-            const selectedIndices = shuffled.map(item => item.index);
+            const shuffled = availableWords.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
+            wordProblems = shuffled;
+            const selectedHashes = shuffled.map(word => word.hash);
 
             // 出題済みに追加
-            usedWordIndices.push(...selectedIndices);
-            localStorage.setItem('usedWordIndices', JSON.stringify(usedWordIndices));
+            usedWordHashes.push(...selectedHashes);
+            localStorage.setItem('usedWordHashes', JSON.stringify(usedWordHashes));
 
             currentWord1 = wordProblems[0];
             currentWord2 = wordProblems[1];
@@ -423,14 +439,13 @@
             }
         }
 
-        // ★変更: 自動リセット＋ポップアップ
+        // ハッシュリセット
         function resetUsedWords(showPopup = true) {
-            usedWordIndices = [];
-            localStorage.setItem('usedWordIndices', JSON.stringify(usedWordIndices));
+            usedWordHashes = [];
+            localStorage.setItem('usedWordHashes', JSON.stringify(usedWordHashes));
             if (showPopup) {
                 document.getElementById('allWordsCompleted').style.display = 'block';
                 document.getElementById('overlay').style.display = 'block';
-                // 1秒後に自動消滅＋新2問
                 setTimeout(() => {
                     document.getElementById('allWordsCompleted').style.display = 'none';
                     document.getElementById('overlay').style.display = 'none';
@@ -448,6 +463,12 @@
 
         document.getElementById('closeAllWords').onclick = function() {
             document.getElementById('allWordsCompleted').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            generateWordProblemSet();
+        };
+
+        document.getElementById('closeUpdated').onclick = function() {
+            document.getElementById('updatedWords').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
             generateWordProblemSet();
         };
