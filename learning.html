@@ -128,8 +128,7 @@
         #wordProgress {
             font-size: 1.1em;
             color: #4682b4;
-            margin: 10px;
-0;
+            margin: 10px 0;
             text-align: center;
         }
         .cat-bg {
@@ -178,7 +177,7 @@
         <div id="mathResult" class="result"></div>
     </div>
 
-    <!-- 単位変換セクション ★追加 -->
+    <!-- 単位変換セクション -->
     <div class="section">
         <h2>単位変換問題 📏</h2>
         <div id="unitProblem"></div>
@@ -223,17 +222,17 @@
 
         // 問題設定とカウンター
         const MATH_QUESTIONS_COUNT = 1;
-        const UNIT_QUESTIONS_COUNT = 1; // ★追加
+        const UNIT_QUESTIONS_COUNT = 1;
         const WORD_QUESTIONS_COUNT = 2;
         let mathAnswered = 0;
-        let unitAnswered = 0; // ★追加
+        let unitAnswered = 0;
         let wordAnswered = 0;
         let completionShown = false;
         let mathProblems = [];
-        let unitProblems = []; // ★追加
+        let unitProblems = [];
         let wordProblems = [];
         let currentMathProblem = null;
-        let currentUnitProblem = null; // ★追加
+        let currentUnitProblem = null;
         let currentWord1 = null;
         let currentWord2 = null;
         let usedWordHashes = JSON.parse(localStorage.getItem('usedWordHashes')) || [];
@@ -280,7 +279,7 @@
             checkCompletion();
         }
 
-        // 単位変換問題生成 ★追加
+        // 単位変換問題生成 ★修正
         const unitConversions = [
             { from: 'mm', to: 'm', factor: 0.001 },
             { from: 'm', to: 'mm', factor: 1000 },
@@ -306,10 +305,16 @@
 
         function generateUnitProblem() {
             const conv = unitConversions[Math.floor(Math.random() * unitConversions.length)];
-            const value = (Math.random() * 999 + 0.001).toFixed(3); // 0.001～999.999
+            let value;
+            // factor >= 1なら小数点3桁、否则整数
+            if (conv.factor >= 1) {
+                value = (Math.random() * 999 + 0.001).toFixed(3); // 0.001～999.999
+            } else {
+                value = Math.floor(Math.random() * 999) + 1; // 1～999
+            }
             const answer = (value * conv.factor).toFixed(3).replace(/\.?0+$/, ''); // 小数点3桁、末尾0除去
             return {
-                question: `${value} ${conv.from} → ${conv.to} = ?`,
+                question: `${value}${conv.from} = ?${conv.to}`, // ★変更: [数字][入力単位] = ?[出力単位]
                 answer: parseFloat(answer),
                 unit: conv.to
             };
@@ -333,7 +338,7 @@
         function checkUnit() {
             const userAnswer = parseFloat(document.getElementById('unitAnswer').value);
             const resultDiv = document.getElementById('unitResult');
-            if (Math.abs(userAnswer - currentUnitProblem.answer) < 0.001) { // 小数点3桁の誤差許容
+            if (Math.abs(userAnswer - currentUnitProblem.answer) < 0.001) {
                 if (soundEnabled && correctSound) correctSound.play();
                 resultDiv.className = 'result correct';
                 resultDiv.innerText = `正解！答え: ${currentUnitProblem.answer} ${currentUnitProblem.unit}`;
@@ -359,7 +364,7 @@
                 words = text.split('\n')
                     .map(line => line.trim())
                     .filter(line => line.length > 0)
-                    .slice(1) // ヘッダー除外
+                    .slice(1)
                     .map(line => {
                         const [hash, type, question, answer] = line.split(',');
                         return { 
@@ -374,10 +379,8 @@
                     document.getElementById('wordProblem1').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
                 }
-                // ハッシュ整合性チェック
                 usedWordHashes = usedWordHashes.filter(hash => words.some(word => word.hash === hash));
                 localStorage.setItem('usedWordHashes', JSON.stringify(usedWordHashes));
-                // 更新通知
                 document.getElementById('updatedWords').style.display = 'block';
                 document.getElementById('overlay').style.display = 'block';
                 setTimeout(() => {
@@ -511,7 +514,6 @@
             }
         }
 
-        // 完了判定 ★更新
         function checkCompletion() {
             if (!completionShown && 
                 mathAnswered >= MATH_QUESTIONS_COUNT && 
@@ -524,7 +526,6 @@
             }
         }
 
-        // ハッシュリセット
         function resetUsedWords(showPopup = true) {
             usedWordHashes = [];
             localStorage.setItem('usedWordHashes', JSON.stringify(usedWordHashes));
@@ -560,7 +561,7 @@
 
         window.onload = () => {
             generateMathProblemSet();
-            generateUnitProblemSet(); // ★追加
+            generateUnitProblemSet();
             loadWords();
         };
     </script>
