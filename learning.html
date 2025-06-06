@@ -181,7 +181,7 @@
     <div class="section">
         <h2>単位変換問題 📏</h2>
         <div id="unitProblem"></div>
-        <input type="number" id="unitAnswer" placeholder="答えを入力（例：12.345）">
+        <input type="number" id="unitAnswer" placeholder="答えを入力（例：12.34）">
         <button id="submitUnitButton" onclick="checkUnit()">回答する ✅</button>
         <button id="nextUnitButton" class="next-button" onclick="nextUnitProblem()" disabled>次の問題 ➡️</button>
         <div id="unitResult" class="result"></div>
@@ -227,7 +227,7 @@
         let mathAnswered = 0;
         let unitAnswered = 0;
         let wordAnswered = 0;
-        let completionShown = false;
+        let completionShown = null;
         let mathProblems = [];
         let unitProblems = [];
         let wordProblems = [];
@@ -241,26 +241,11 @@
         function generateMathProblem() {
             const num1 = Math.floor(Math.random() * 900) + 100;
             const digits = Math.random() < 0.5 ? 2 : 3;
-            const num2 = digits === 2 ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 900) + 100;
-            return { question: `${num1} × ${num2} = ?`, answer: num1 * num2 };
+            const num2 = digits === 2 ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 1000) + 100;
+            return { question: `${num1} × ${num2}`, answer: num1 * num2 };
         }
 
-        // 掛け算問題設定
-        function generateMathProblemSet() {
-            mathProblems = [generateMathProblem()];
-            nextMathProblem();
-        }
-
-        function nextMathProblem() {
-            currentMathProblem = generateMathProblem();
-            document.getElementById('mathProblem').innerText = currentMathProblem.question;
-            document.getElementById('mathResult').innerText = '';
-            document.getElementById('mathResult').className = 'result';
-            document.getElementById('mathAnswer').value = '';
-            document.getElementById('submitMathButton').disabled = false;
-            document.getElementById('nextMathButton').disabled = true;
-        }
-
+        // チェック掛け算問題
         function checkMath() {
             const userAnswer = parseInt(document.getElementById('mathAnswer').value);
             const resultDiv = document.getElementById('mathResult');
@@ -277,6 +262,21 @@
             document.getElementById('submitMathButton').disabled = true;
             document.getElementById('nextMathButton').disabled = false;
             checkCompletion();
+        }
+
+        function generateMathProblemSet() {
+            mathProblems = [generateMathProblem()];
+            nextMathProblem();
+        }
+
+        function nextMathProblem() {
+            currentMathProblem = generateMathProblem();
+            document.getElementById('mathProblem').innerText = currentMathProblem.question;
+            document.getElementById('mathResult').innerText = '';
+            document.getElementById('mathResult').className = 'result';
+            document.getElementById('mathAnswer').value = '';
+            document.getElementById('submitMathButton').disabled = false;
+            document.getElementById('nextMathButton').disabled = true;
         }
 
         // 単位変換問題生成 ★修正
@@ -306,15 +306,17 @@
         function generateUnitProblem() {
             const conv = unitConversions[Math.floor(Math.random() * unitConversions.length)];
             let value;
-            // factor >= 1なら小数点3桁、否则整数
+            // factor >= 1なら小数点3桁、否则整数、上限10000
             if (conv.factor >= 1) {
-                value = (Math.random() * 999 + 0.001).toFixed(3); // 0.001～999.999
+                value = (Math.random() * 10000 + 0.001).toFixed(3); // 0.001～10000
             } else {
-                value = Math.floor(Math.random() * 999) + 1; // 1～999
+                value = Math.floor(Math.random() * 10000) + 1; // 1～10000
             }
-            const answer = (value * conv.factor).toFixed(3).replace(/\.?0+$/, ''); // 小数点3桁、末尾0除去
+            // 末尾0省略
+            value = parseFloat(value).toString().replace(/\.?0+$/, '');
+            const answer = (value * conv.factor).toFixed(3).replace(/\.?0+$/, ''); // 答えも末尾0省略
             return {
-                question: `${value}${conv.from} = ?${conv.to}`, // ★変更: [数字][入力単位] = ?[出力単位]
+                question: `${value}${conv.from} = ?${conv.to}`, // [数字][入力単位] = ?[出力単位]
                 answer: parseFloat(answer),
                 unit: conv.to
             };
