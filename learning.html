@@ -97,9 +97,9 @@
             position: absolute;
             top: 10px;
             right: 15px;
-            font-size: 1.2em;
             cursor: pointer;
             color: white;
+            font-size: 1.2em;
         }
         #overlay {
             display: none;
@@ -114,26 +114,23 @@
         h1 {
             color: #ff4500;
             text-align: center;
+            font-family: 'Mochiy Pop One';
             animation: zoomIn 1s;
+        }
+        h2 {
+            margin: 10px 0;
+            color: #4682b4;
         }
         h3 {
             margin: 10px 0;
-            color: #4682b4;
+            color: #333;
         }
         #wordProgress {
             font-size: 1.1em;
             color: #4682b4;
             margin: 10px;
+0;
             text-align: center;
-        }
-        @keyframes bounceIn {
-            0% { transform: scale(0.1) translate(-50%, -50%); opacity: 0; }
-            60% { transform: scale(1.2) translate(-50%, -50%); opacity: 1; }
-            100% { transform: scale(1) translate(-50%, -50%); }
-        }
-        @keyframes zoomIn {
-            from { scale(0); }
-            to { scale(1); }
         }
         .cat-bg {
             position: absolute;
@@ -142,6 +139,15 @@
             opacity: 0.1;
             width: 100px;
             z-index: -1;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.1) translate(-50%, -50%); opacity: 0; }
+            60% { transform: scale(1.2) translate(-50%, -50%); opacity: 1; }
+            100% { transform: scale(1) translate(-50%, -50%); }
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
         }
     </style>
 </head>
@@ -170,6 +176,16 @@
         <button id="submitMathButton" onclick="checkMath()">回答する ✅</button>
         <button id="nextMathButton" class="next-button" onclick="nextMathProblem()" disabled>次の問題 ➡️</button>
         <div id="mathResult" class="result"></div>
+    </div>
+
+    <!-- 単位変換セクション ★追加 -->
+    <div class="section">
+        <h2>単位変換問題 📏</h2>
+        <div id="unitProblem"></div>
+        <input type="number" id="unitAnswer" placeholder="答えを入力（例：12.345）">
+        <button id="submitUnitButton" onclick="checkUnit()">回答する ✅</button>
+        <button id="nextUnitButton" class="next-button" onclick="nextUnitProblem()" disabled>次の問題 ➡️</button>
+        <div id="unitResult" class="result"></div>
     </div>
 
     <!-- 国語セクション -->
@@ -207,16 +223,20 @@
 
         // 問題設定とカウンター
         const MATH_QUESTIONS_COUNT = 1;
+        const UNIT_QUESTIONS_COUNT = 1; // ★追加
         const WORD_QUESTIONS_COUNT = 2;
         let mathAnswered = 0;
+        let unitAnswered = 0; // ★追加
         let wordAnswered = 0;
         let completionShown = false;
         let mathProblems = [];
+        let unitProblems = []; // ★追加
         let wordProblems = [];
         let currentMathProblem = null;
+        let currentUnitProblem = null; // ★追加
         let currentWord1 = null;
         let currentWord2 = null;
-        let usedWordHashes = JSON.parse(localStorage.getItem('usedWordHashes')) || []; // ★変更: ハッシュ管理
+        let usedWordHashes = JSON.parse(localStorage.getItem('usedWordHashes')) || [];
 
         // 掛け算問題生成
         function generateMathProblem() {
@@ -260,6 +280,74 @@
             checkCompletion();
         }
 
+        // 単位変換問題生成 ★追加
+        const unitConversions = [
+            { from: 'mm', to: 'm', factor: 0.001 },
+            { from: 'm', to: 'mm', factor: 1000 },
+            { from: 'mm', to: 'cm', factor: 0.1 },
+            { from: 'cm', to: 'mm', factor: 10 },
+            { from: 'cm', to: 'm', factor: 0.01 },
+            { from: 'm', to: 'cm', factor: 100 },
+            { from: 'm', to: 'km', factor: 0.001 },
+            { from: 'km', to: 'm', factor: 1000 },
+            { from: 'mg', to: 'g', factor: 0.001 },
+            { from: 'g', to: 'mg', factor: 1000 },
+            { from: 'g', to: 'kg', factor: 0.001 },
+            { from: 'kg', to: 'g', factor: 1000 },
+            { from: 'kg', to: 't', factor: 0.001 },
+            { from: 't', to: 'kg', factor: 1000 },
+            { from: 'mL', to: 'dL', factor: 0.01 },
+            { from: 'dL', to: 'mL', factor: 100 },
+            { from: 'mL', to: 'L', factor: 0.001 },
+            { from: 'L', to: 'mL', factor: 1000 },
+            { from: 'dL', to: 'L', factor: 0.1 },
+            { from: 'L', to: 'dL', factor: 10 }
+        ];
+
+        function generateUnitProblem() {
+            const conv = unitConversions[Math.floor(Math.random() * unitConversions.length)];
+            const value = (Math.random() * 999 + 0.001).toFixed(3); // 0.001～999.999
+            const answer = (value * conv.factor).toFixed(3).replace(/\.?0+$/, ''); // 小数点3桁、末尾0除去
+            return {
+                question: `${value} ${conv.from} → ${conv.to} = ?`,
+                answer: parseFloat(answer),
+                unit: conv.to
+            };
+        }
+
+        function generateUnitProblemSet() {
+            unitProblems = [generateUnitProblem()];
+            nextUnitProblem();
+        }
+
+        function nextUnitProblem() {
+            currentUnitProblem = generateUnitProblem();
+            document.getElementById('unitProblem').innerText = currentUnitProblem.question;
+            document.getElementById('unitResult').innerText = '';
+            document.getElementById('unitResult').className = 'result';
+            document.getElementById('unitAnswer').value = '';
+            document.getElementById('submitUnitButton').disabled = false;
+            document.getElementById('nextUnitButton').disabled = true;
+        }
+
+        function checkUnit() {
+            const userAnswer = parseFloat(document.getElementById('unitAnswer').value);
+            const resultDiv = document.getElementById('unitResult');
+            if (Math.abs(userAnswer - currentUnitProblem.answer) < 0.001) { // 小数点3桁の誤差許容
+                if (soundEnabled && correctSound) correctSound.play();
+                resultDiv.className = 'result correct';
+                resultDiv.innerText = `正解！答え: ${currentUnitProblem.answer} ${currentUnitProblem.unit}`;
+            } else {
+                if (soundEnabled && incorrectSound) incorrectSound.play();
+                resultDiv.className = 'result incorrect';
+                resultDiv.innerText = `不正解。答え: ${currentUnitProblem.answer} ${currentUnitProblem.unit}`;
+            }
+            unitAnswered++;
+            document.getElementById('submitUnitButton').disabled = true;
+            document.getElementById('nextUnitButton').disabled = false;
+            checkCompletion();
+        }
+
         // 国語データ
         let words = [];
 
@@ -286,10 +374,10 @@
                     document.getElementById('wordProblem1').innerText = `エラー: 問題が${WORD_QUESTIONS_COUNT}問以上必要です。`;
                     return;
                 }
-                // ハッシュ整合性チェック（存在しないハッシュをクリア）
+                // ハッシュ整合性チェック
                 usedWordHashes = usedWordHashes.filter(hash => words.some(word => word.hash === hash));
                 localStorage.setItem('usedWordHashes', JSON.stringify(usedWordHashes));
-                // 更新通知（初回ロード）
+                // 更新通知
                 document.getElementById('updatedWords').style.display = 'block';
                 document.getElementById('overlay').style.display = 'block';
                 setTimeout(() => {
@@ -305,28 +393,22 @@
 
         // 国語問題セット生成
         function generateWordProblemSet() {
-            // 未出題問題を取得
             const availableWords = words.filter(word => !usedWordHashes.includes(word.hash));
             if (availableWords.length < WORD_QUESTIONS_COUNT) {
-                // 全問網羅ならリセット
                 resetUsedWords(true);
                 return;
             }
-            // 進捗更新
             document.getElementById('wordProgress').innerText = `残り${availableWords.length}問`;
-            // ランダムに2問選択
             const shuffled = availableWords.sort(() => Math.random() - 0.5).slice(0, WORD_QUESTIONS_COUNT);
             wordProblems = shuffled;
             const selectedHashes = shuffled.map(word => word.hash);
 
-            // 出題済みに追加
             usedWordHashes.push(...selectedHashes);
             localStorage.setItem('usedWordHashes', JSON.stringify(usedWordHashes));
 
             currentWord1 = wordProblems[0];
             currentWord2 = wordProblems[1];
 
-            // 問題1表示
             let displayText1 = '';
             let placeholder1 = '';
             switch (currentWord1.type) {
@@ -349,7 +431,6 @@
             document.getElementById('wordAnswer1').value = '';
             document.getElementById('submitWordButton1').disabled = false;
 
-            // 問題2表示
             let displayText2 = '';
             let placeholder2 = '';
             switch (currentWord2.type) {
@@ -430,8 +511,12 @@
             }
         }
 
+        // 完了判定 ★更新
         function checkCompletion() {
-            if (!completionShown && mathAnswered >= MATH_QUESTIONS_COUNT && wordAnswered >= WORD_QUESTIONS_COUNT) {
+            if (!completionShown && 
+                mathAnswered >= MATH_QUESTIONS_COUNT && 
+                unitAnswered >= UNIT_QUESTIONS_COUNT && 
+                wordAnswered >= WORD_QUESTIONS_COUNT) {
                 document.getElementById('completionMessage').style.display = 'block';
                 document.getElementById('overlay').style.display = 'block';
                 if (soundEnabled && completeSound) completeSound.play();
@@ -475,6 +560,7 @@
 
         window.onload = () => {
             generateMathProblemSet();
+            generateUnitProblemSet(); // ★追加
             loadWords();
         };
     </script>
