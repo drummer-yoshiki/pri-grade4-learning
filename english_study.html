@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英語学習サイト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #problem-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .problem-type {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .question {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .options {
+            list-style: none;
+            padding: 0;
+        }
+        .options li {
+            margin-bottom: 10px;
+        }
+        .option-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+        }
+        .option-btn:hover {
+            background-color: #0056b3;
+        }
+        #loading {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+        }
+        #error {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>英語学習クイズ</h1>
+    <div id="problem-container">
+        <div id="loading">問題を生成中...</div>
+        <div id="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 苦手な単語や熟語のリスト（例: 単語や熟語を配列で持つ）
+        const words = [
+            "apple", "banana", "break the ice", "piece of cake", "hit the books",
+            "call it a day", "let the cat out of the bag", "cost an arm and a leg",
+            "under the weather", "spill the beans"
+        ];
+
+        // Google AI Studio (Gemini API)のエンドポイントとAPIキー（ユーザーが自分のAPIキーをここに入力）
+        const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=';
+        const API_KEY = 'AIzaSyAHcj_aoEVG8MqCmYejIu9Co6gs1vEh8iQ'; // ここに自分のGoogle AI Studio APIキーを入力してください
+
+        // 問題の種類
+        const problemTypes = [
+            'fill_in_the_blank', // 穴埋め問題
+            'reorder',           // 並べ替え問題
+            'response'           // 返答問題
+        ];
+
+        window.onload = async function() {
+            // ランダムに5つの単語/熟語を選択
+            const selectedWords = getRandomItems(words, 5);
+            console.log('Selected words:', selectedWords);
+
+            // ランダムに問題の種類を選択
+            const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)];
+
+            // AIに問題を生成させるためのプロンプトを作成
+            let prompt = `Generate an English quiz problem using the following words/phrases: ${selectedWords.join(', ')}. 
+The problem type is ${problemType}. 
+Make it a multiple-choice question with 4 options. 
+Output only in JSON format: { "question": "The question text", "options": ["Option1", "Option2", "Option3", "Option4"], "correct": "Correct option" }.
+
+Specific instructions by type:
+`;
+
+            if (problemType === 'fill_in_the_blank') {
+                prompt += `Fill-in-the-blank: Create a sentence with a blank where one of the selected words/phrases fits. The options are 4 choices, one correct.`;
+            } else if (problemType === 'reorder') {
+                prompt += `Reorder: Create an English sentence using one or more selected words/phrases, split into words/phrases. Provide Japanese translation. The question asks for the combination of 2nd and 4th positions in 4 choices like: 1: ①-③, 2: ②-④, etc. Options are numbered rearrangements.`;
+            } else if (problemType === 'response') {
+                prompt += `Response: Create a conversation between A and B. A's question, then 4 choices for B's response. The correct one uses one of the selected words/phrases.`;
+            }
+
+            try {
+                // Gemini APIを呼び出して問題を生成
+                const response = await fetch(API_URL + API_KEY, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }],
+                        generationConfig: {
+                            temperature: 0.7,
+                            responseMimeType: 'application/json' // JSON出力指定
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+
+                const data = await response.json();
+                // GeminiのレスポンスからJSONを抽出
+                const generatedText = data.candidates[0].content.parts[0].text;
+                const generated = JSON.parse(generatedText);
+
+                // UIに表示
+                displayProblem(problemType, generated.question, generated.options, generated.correct);
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = '問題の生成に失敗しました。APIキーを確認してください。';
+                errorDiv.style.display = 'block';
+                console.error(error);
+            }
+        };
+
+        // ランダムにアイテムを選択する関数
+        function getRandomItems(array, num) {
+            const shuffled = array.slice().sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, num);
+        }
+
+        // 問題を表示する関数
+        function displayProblem(type, question, options, correct) {
+            const container = document.getElementById('problem-container');
+            container.innerHTML = '';
+
+            const typeElem = document.createElement('p');
+            typeElem.className = 'problem-type';
+            typeElem.textContent = getTypeName(type);
+            container.appendChild(typeElem);
+
+            const questionElem = document.createElement('div');
+            questionElem.className = 'question';
+            questionElem.innerHTML = question; // HTMLとして扱う場合（穴埋めなどで<b>など使うかも）
+            container.appendChild(questionElem);
+
+            const optionsList = document.createElement('ul');
+            optionsList.className = 'options';
+            options.forEach((opt, index) => {
+                const li = document.createElement('li');
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = function() {
+                    checkAnswer(opt, correct, btn);
+                };
+                li.appendChild(btn);
+                optionsList.appendChild(li);
+            });
+            container.appendChild(optionsList);
+        }
+
+        // 問題種類の日本語名
+        function getTypeName(type) {
+            if (type === 'fill_in_the_blank') return '穴埋め問題';
+            if (type === 'reorder') return '並べ替え問題';
+            if (type === 'response') return '返答問題';
+            return '不明';
+        }
+
+        // 正解チェック（オプション: 表示だけなので追加機能として）
+        function checkAnswer(selected, correct, btn) {
+            if (selected === correct) {
+                btn.style.backgroundColor = '#28a745';
+                alert('正解！');
+            } else {
+                btn.style.backgroundColor = '#dc3545';
+                alert('不正解。正解は: ' + correct);
+            }
+            // 他のボタンを無効化
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+        }
+    </script>
+</body>
+</html>
