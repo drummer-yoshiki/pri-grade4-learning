@@ -132,7 +132,7 @@
  </div>
 
  <script>
- const API_KEY = 'AIzaSyAHcj_aoEVG8MqCmYejIu9Co6gs1vEh8iQ';
+ // ★★★★★ 1. APIキーのハードコーディングを削除 ★★★★★
  const generateBtn = document.getElementById('generate-btn');
  const quizArea = document.getElementById('quiz-area');
  const loadingMessage = document.getElementById('loading-message');
@@ -171,10 +171,20 @@
 
  const questionTypes = ['fillInTheBlank', 'dialogue'];
  
+ // ★★★★★ 2. APIキーとテーマを外部ファイルから読み込む関数を準備 ★★★★★
+ async function loadApiKey() {
+    const response = await fetch('english-test/api');
+    if (!response.ok) {
+        throw new Error('APIキーファイルが見つかりません: english-test/api を確認してください。');
+    }
+    const key = await response.text();
+    return key.trim();
+ }
+
  async function loadThemes() {
     const response = await fetch('english-test/list.txt');
     if (!response.ok) {
-        throw new Error('ファイルが見つかりません: english-test/list.txt を確認してください。');
+        throw new Error('テーマリストが見つかりません: english-test/list.txt を確認してください。');
     }
     const text = await response.text();
     return text.split('\n')
@@ -182,12 +192,12 @@
                .filter(line => line.length > 0);
  }
 
- async function fetchSingleQuestion(theme, type, context) {
+ async function fetchSingleQuestion(theme, type, context, apiKey) {
     try {
         const template = promptTemplates[type];
         let finalPrompt = template.replaceAll('__THEME__', theme);
         finalPrompt = finalPrompt.replaceAll('__CONTEXT__', context);
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         const data = { contents: [{ parts: [{ text: finalPrompt }] }] };
 
         const response = await fetch(url, {
@@ -221,17 +231,15 @@
     }
  }
 
+ // ★★★★★ 3. メイン関数を修正し、最初にAPIキーとテーマを読み込むように変更 ★★★★★
  async function callGeminiAPI() {
-    if (API_KEY === 'あなたのAPIキーをここに貼り付けてください' || API_KEY.trim() === '') {
-        alert('APIキーが設定されていません。コード内の API_KEY を書き換えてください。');
-        return;
-    }
-
     quizArea.innerHTML = "";
     loadingMessage.style.display = 'block';
     generateBtn.disabled = true;
 
     try {
+        // 最初にAPIキーとテーマリストを外部ファイルから読み込む
+        const apiKey = await loadApiKey();
         const themes = await loadThemes();
 
         if (themes.length < 5) {
@@ -249,7 +257,7 @@
             const randomType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
             const randomContext = contexts[Math.floor(Math.random() * contexts.length)];
             
-            let question = await fetchSingleQuestion(theme, randomType, randomContext);
+            let question = await fetchSingleQuestion(theme, randomType, randomContext, apiKey);
 
             if (
                 question &&
