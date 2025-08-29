@@ -136,22 +136,22 @@
  const quizArea = document.getElementById('quiz-area');
  const loadingMessage = document.getElementById('loading-message');
 
- // ★★★★★ 以前のバージョン（安定版）のプロンプト ★★★★★
+ // ★★★★★ 1. ユーザー提供のプロンプトに戻す ★★★★★
  const promptTemplates = {
-    fillInTheBlank: `英検4級レベルの「__THEME__」をテーマにした英文の穴埋め問題を1問だけ作成してください。**文の状況設定は「__CONTEXT__」に関連させてください。**
+    fillInTheBlank: `英検4級レベルの「__THEME__」をテーマにした最大7語からなる英文の穴埋め問題を1問だけ作成してください。**文の状況設定は「__CONTEXT__」に関連させてください。**
 **【最重要原則】**
 - 正解の選択肢は、文法・文脈において**完全に正しいものが1つだけ**です。
-- 他3つの不正解の選択肢は、**それを空欄に入れると英文が文法的に成立しなくなる（grammatically incorrect）**ように作成してください。
+- 他3つの不正解の選択肢は、**それを空欄に入れると英文が文法的に成立しなくなるものとし、__THEME__を含まない**ように作成してください。
 
 **【出力形式】**
 - 問題(\`question\`)と選択肢(\`options\`)は必ず英語で作成してください。
 - 解説(\`explanation\`)は、**なぜその選択肢が正解で、他が不正解なのかを学習者が理解できるように、必ず日本語で具体的に説明**してください。
 - 選択肢(\`options\`)は、**必ず4つの要素を持つ配列**にしてください。
 - JSONのキーは必ず question, options, answer, explanation としてください。`,
-    dialogue: `英検4級レベルの「__THEME__」をテーマにした対話形式の選択問題を1問だけ作成してください。**対話の状況設定は「__CONTEXT__」に関連させてください。**
+    dialogue: `英検4級レベルの「__THEME__」をテーマにした、各話者の発言は最大7語からなる対話形式の選択問題を1問だけ作成してください。**対話の状況設定は「__CONTEXT__」に関連させてください。**
 **【最重要原則】**
 - 正解の選択肢は、**話者にとって自然で論理的な応答であり、文法・文脈において完全に正しいものが1つだけ**です。
-- 他3つの不正解の選択肢は、**質問と全く関係ない、または文脈に合わない応答**にしてください。
+- 他3つの不正解の選択肢は、**質問と全く関係ない、または文脈に合わない応答とし、__THEME__を含まないもの**にしてください。
 
 **【問題作成のルール】**
 - AとBの短い英語の対話文を作成します。
@@ -191,7 +191,8 @@
                .filter(line => line.length > 0);
  }
 
- async function fetchSingleQuestion(theme, type, context, apiKey) {
+ async function fetchSingleQuestion(theme, type, context, apiKey, debugLog) {
+    debugLog.push(`[試行] テーマ「${theme}」でAPI呼び出しを開始...`);
     try {
         const template = promptTemplates[type];
         let finalPrompt = template.replaceAll('__THEME__', theme);
@@ -205,7 +206,10 @@
             body: JSON.stringify(data)
         });
 
+        debugLog.push(`  - APIレスポンスステータス: ${response.status} ${response.statusText}`);
         if (!response.ok) {
+            const errorText = await response.text();
+            debugLog.push(`  - APIエラー内容: ${errorText}`);
             console.error(`APIエラー: ${response.status}`);
             return null;
         }
@@ -215,29 +219,38 @@
             const generatedText = responseData.candidates[0].content.parts[0].text;
             const jsonMatch = generatedText.match(/```json\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*?\})/);
             if (!jsonMatch) {
-                console.error("応答からJSONデータが見つかりませんでした。");
+                debugLog.push("  - 失敗: 応答からJSONデータが見つかりませんでした。");
                 return null;
             }
             const jsonString = jsonMatch[1] || jsonMatch[2];
             const questionData = JSON.parse(jsonString);
             questionData.type = type;
+            debugLog.push("  - 成功: 問題JSONの取得と解析に成功しました。");
             return questionData;
         }
+        debugLog.push("  - 失敗: 応答に有効な候補(candidates)がありませんでした。");
         return null;
     } catch (error) {
+        debugLog.push(`  - 失敗: API呼び出し中に致命的なエラーが発生 - ${error.message}`);
         console.error("単一の問題取得中にエラー:", error);
         return null;
     }
  }
 
+ // ★★★★★ 2. メイン関数にデバッグログ機能を追加 ★★★★★
  async function callGeminiAPI() {
     quizArea.innerHTML = "";
     loadingMessage.style.display = 'block';
     generateBtn.disabled = true;
 
+    const debugLog = []; // デバッグメッセージをここに保存
+
     try {
+        debugLog.push("処理開始...");
         const apiKey = await loadApiKey();
+        debugLog.push(`APIキー読み込み完了。キー: "${apiKey.substring(0, 4)}...${apiKey.slice(-4)}"`);
         const themes = await loadThemes();
+        debugLog.push(`テーマリスト読み込み完了。${themes.length}件のテーマを検出。`);
 
         if (themes.length < 5) {
             throw new Error('list.txtには少なくとも5つのテーマを記載してください。');
@@ -254,7 +267,7 @@
             const randomType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
             const randomContext = contexts[Math.floor(Math.random() * contexts.length)];
             
-            let question = await fetchSingleQuestion(theme, randomType, randomContext, apiKey);
+            let question = await fetchSingleQuestion(theme, randomType, randomContext, apiKey, debugLog);
 
             if (
                 question &&
@@ -271,15 +284,17 @@
                 }
                 if (question) {
                     questionObjects.push(question);
+                    debugLog.push("  - この問題は完全なため採用します。");
                 }
             } else {
+                debugLog.push("  - この問題は不完全なためスキップします。");
                 console.warn('生成された問題が不完全なためスキップされました:', question);
             }
             attempts++;
         }
 
         if (questionObjects.length < 5) {
-            throw new Error(`問題の生成に失敗しました。（試行回数: ${attempts}）`);
+            throw new Error(`有効な問題を5問生成できませんでした。（試行回数: ${attempts}）`);
         }
         
         const quizData = { questions: questionObjects };
@@ -287,7 +302,14 @@
 
     } catch (error) {
         console.error('エラーが発生しました:', error);
-        quizArea.innerHTML = `<div class="error-box"><h4>エラー</h4><p>${error.message}</p></div>`;
+        // ★★★★★ 3. エラー時にデバッグログを画面に表示 ★★★★★
+        quizArea.innerHTML = `<div class="error-box">
+                                <h4>エラー</h4>
+                                <p>${error.message}</p>
+                                <hr>
+                                <h4>デバッグログ:</h4>
+                                <pre>${debugLog.join('\n')}</pre>
+                              </div>`;
     } finally {
         loadingMessage.style.display = 'none';
         generateBtn.disabled = false;
