@@ -54,8 +54,8 @@ question
 comfortable
 exciting
 popular
-cheap
-expensive
+cheap（安い）
+expensive（高い）
 early
 fall
 win
